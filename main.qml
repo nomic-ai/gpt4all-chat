@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import llm
+import Qt.labs.settings 1.1
 
 Window {
     id: window
