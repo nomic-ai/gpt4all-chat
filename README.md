@@ -71,8 +71,8 @@ mv /path/to/ggml-model-q4_0.bin .
 * Install cmake for your platform https://cmake.org/install/
 * Clone this repo and build the `ggml` subfolder
 ```
-git clone --recurse-submodules https://github.com/nomic-ai/gpt4all-chat
-cd gpt4all-chat/ggml
+git clone https://github.com/ggerganov/ggml
+cd ggml
 mkdir build
 cd build
 cmake ..
