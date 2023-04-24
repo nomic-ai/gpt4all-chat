@@ -5,6 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import llm
 import network
+import gpt4all
 
 Window {
     id: window
@@ -620,6 +621,14 @@ Window {
                         cursorPosition: text.length
                         background: Rectangle {
                             color: name === qsTr("Response: ") ? theme.backgroundLighter : theme.backgroundLight
+                        }
+
+                        ResponseText {
+                            id: responseText
+                        }
+
+                        Component.onCompleted: {
+                            responseText.textDocument = textDocument
                         }
 
                         Accessible.role: Accessible.Paragraph

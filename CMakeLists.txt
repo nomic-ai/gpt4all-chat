@@ -82,6 +82,8 @@ qt_add_qml_module(chat
       qml/SettingsDialog.qml
       qml/PopupDialog.qml
       qml/Theme.qml
+    SOURCES
+      responsetext.h responsetext.cpp
     RESOURCES
       icons/send_message.svg
       icons/stop_generating.svg
