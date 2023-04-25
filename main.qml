@@ -824,7 +824,9 @@ Window {
                                        settingsDialog.maxLength,
                                        settingsDialog.topK, settingsDialog.topP,
                                        settingsDialog.temperature,
-                                       settingsDialog.promptBatchSize)
+                                       settingsDialog.promptBatchSize,
+                                       settingsDialog.repeatPenalty,
+                                       settingsDialog.repeatPenaltyTokens)
                         }
                     }
                 }
@@ -903,7 +905,9 @@ Window {
                                settingsDialog.topK,
                                settingsDialog.topP,
                                settingsDialog.temperature,
-                               settingsDialog.promptBatchSize)
+                               settingsDialog.promptBatchSize,
+                               settingsDialog.repeatPenalty,
+                               settingsDialog.repeatPenaltyTokens)
                     textInput.text = ""
                 }
             }
