@@ -151,7 +151,7 @@ Dialog {
                     Layout.row: 0
                     Layout.column: 1
                     validator: DoubleValidator { }
-                    onAccepted: {
+                    onEditingFinished: {
                         var val = parseFloat(text)
                         if (!isNaN(val)) {
                             settings.temperature = val
@@ -186,7 +186,7 @@ Dialog {
                     Layout.row: 1
                     Layout.column: 1
                     validator: DoubleValidator {}
-                    onAccepted: {
+                    onEditingFinished: {
                         var val = parseFloat(text)
                         if (!isNaN(val)) {
                             settings.topP = val
@@ -221,7 +221,7 @@ Dialog {
                      Layout.row: 2
                      Layout.column: 1
                      validator: IntValidator { bottom: 1 }
-                     onAccepted: {
+                     onEditingFinished: {
                          var val = parseInt(text)
                          if (!isNaN(val)) {
                              settings.topK = val
@@ -256,7 +256,7 @@ Dialog {
                      Layout.row: 3
                      Layout.column: 1
                      validator: IntValidator { bottom: 1 }
-                     onAccepted: {
+                     onEditingFinished: {
                          var val = parseInt(text)
                          if (!isNaN(val)) {
                              settings.maxLength = val
@@ -292,7 +292,7 @@ Dialog {
                      Layout.row: 4
                      Layout.column: 1
                      validator: IntValidator { bottom: 1 }
-                     onAccepted: {
+                     onEditingFinished: {
                          var val = parseInt(text)
                          if (!isNaN(val)) {
                              settings.promptBatchSize = val
@@ -327,7 +327,7 @@ Dialog {
                      Layout.row: 5
                      Layout.column: 1
                      validator: DoubleValidator {}
-                     onAccepted: {
+                     onEditingFinished: {
                          var val = parseFloat(text)
                          if (!isNaN(val)) {
                              settings.repeatPenalty = val
@@ -362,7 +362,7 @@ Dialog {
                       Layout.row: 6
                       Layout.column: 1
                       validator: IntValidator { bottom: 1 }
-                      onAccepted: {
+                      onEditingFinished: {
                           var val = parseInt(text)
                           if (!isNaN(val)) {
                               settings.repeatPenaltyTokens = val
@@ -514,7 +514,7 @@ Dialog {
                     Layout.row: 2
                     Layout.column: 1
                     validator: IntValidator { bottom: 1 }
-                    onAccepted: {
+                    onEditingFinished: {
                         var val = parseInt(text)
                         if (!isNaN(val)) {
                             settingsDialog.threadCount = val
