@@ -112,8 +112,7 @@ Dialog {
             }
             background: Rectangle {
                 color: genSettingsButton.checked ? theme.backgroundDarkest : theme.backgroundLight
-                radius: 5
-                border.color: "#fff"
+                border.color: theme.tabBorder
                 border.width: 1 ? genSettingsButton.checked : 0
             }
             Accessible.role: Accessible.Button
@@ -131,8 +130,7 @@ Dialog {
             }
             background: Rectangle {
                 color: appSettingsButton.checked ? theme.backgroundDarkest : theme.backgroundLight
-                radius: 2
-                border.color: "#fff"
+                border.color: theme.tabBorder
                 border.width: 1 ? appSettingsButton.checked : 0
             }
             Accessible.role: Accessible.Button
@@ -156,6 +154,7 @@ Dialog {
                     border.width: 1
                     radius: 2
                 }
+                padding: 10
                 width: parent.width
                 height: parent.height - 30
                 contentWidth: availableWidth - 20
@@ -514,6 +513,7 @@ Dialog {
                     border.width: 1
                     radius: 2
                 }
+                padding: 10
                 width: parent.width
                 height: parent.height - 30
                 contentWidth: availableWidth - 20
