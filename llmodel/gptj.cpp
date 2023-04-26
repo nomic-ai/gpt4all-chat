@@ -12,7 +12,13 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <unistd.h>
+
+// Platform-specific includes
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <unistd.h>
+#endif
 
 // default hparams (GPT-J 6B)
 struct gptj_hparams {
