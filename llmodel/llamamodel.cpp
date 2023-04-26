@@ -13,9 +13,15 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <unistd.h>
 #include <random>
 #include <thread>
+
+// Platform-specific includes
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <unistd.h>
+#endif
 
 struct LLamaPrivate {
     const std::string modelPath;
