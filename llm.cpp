@@ -1,5 +1,6 @@
 #include "llm.h"
 #include "download.h"
+#include "network.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -37,12 +38,15 @@ static QString modelFilePath(const QString &modelName)
 LLMObject::LLMObject()
     : QObject{nullptr}
     , m_llmodel(nullptr)
-    , m_responseTokens(0)
+    , m_promptResponseTokens(0)
     , m_responseLogits(0)
     , m_isRecalc(false)
 {
     moveToThread(&m_llmThread);
     connect(&m_llmThread, &QThread::started, this, &LLMObject::loadModel);
+    connect(this, &LLMObject::sendStartup, Network::globalInstance(), &Network::sendStartup);
+    connect(this, &LLMObject::sendModelLoaded, Network::globalInstance(), &Network::sendModelLoaded);
+    connect(this, &LLMObject::sendResetContext, Network::globalInstance(), &Network::sendResetContext);
     m_llmThread.setObjectName("llm thread");
     m_llmThread.start();
 }
@@ -65,11 +69,14 @@ bool LLMObject::loadModelPrivate(const QString &modelName)
     if (isModelLoaded() && m_modelName == modelName)
         return true;
 
+    bool isFirstLoad = false;
     if (isModelLoaded()) {
-        resetContext();
+        resetContextPrivate();
         delete m_llmodel;
         m_llmodel = nullptr;
         emit isModelLoadedChanged();
+    } else {
+        isFirstLoad = true;
     }
 
     bool isGPTJ = false;
@@ -93,6 +100,11 @@ bool LLMObject::loadModelPrivate(const QString &modelName)
 
         emit isModelLoadedChanged();
         emit threadCountChanged();
+
+        if (isFirstLoad)
+            emit sendStartup();
+        else
+            emit sendModelLoaded();
     }
 
     if (m_llmodel)
@@ -121,12 +133,12 @@ bool LLMObject::isModelLoaded() const
 
 void LLMObject::regenerateResponse()
 {
-    s_ctx.n_past -= m_responseTokens;
+    s_ctx.n_past -= m_promptResponseTokens;
     s_ctx.n_past = std::max(0, s_ctx.n_past);
     // FIXME: This does not seem to be needed in my testing and llama models don't to it. Remove?
     s_ctx.logits.erase(s_ctx.logits.end() -= m_responseLogits, s_ctx.logits.end());
-    s_ctx.tokens.erase(s_ctx.tokens.end() -= m_responseTokens, s_ctx.tokens.end());
-    m_responseTokens = 0;
+    s_ctx.tokens.erase(s_ctx.tokens.end() -= m_promptResponseTokens, s_ctx.tokens.end());
+    m_promptResponseTokens = 0;
     m_responseLogits = 0;
     m_response = std::string();
     emit responseChanged();
@@ -134,13 +146,19 @@ void LLMObject::regenerateResponse()
 
 void LLMObject::resetResponse()
 {
-    m_responseTokens = 0;
+    m_promptResponseTokens = 0;
     m_responseLogits = 0;
     m_response = std::string();
     emit responseChanged();
 }
 
 void LLMObject::resetContext()
+{
+    resetContextPrivate();
+    emit sendResetContext();
+}
+
+void LLMObject::resetContextPrivate()
 {
     regenerateResponse();
     s_ctx = LLModel::PromptContext();
@@ -245,6 +263,14 @@ QList<QString> LLMObject::modelList() const
     return list;
 }
 
+bool LLMObject::handlePrompt(int32_t token)
+{
+    // m_promptResponseTokens and m_responseLogits are related to last prompt/response not
+    // the entire context window which we can reset on regenerate prompt
+    ++m_promptResponseTokens;
+    return !m_stopGenerating;
+}
+
 bool LLMObject::handleResponse(int32_t token, const std::string &response)
 {
 #if 0
@@ -252,18 +278,19 @@ bool LLMObject::handleResponse(int32_t token, const std::string &response)
     fflush(stdout);
 #endif
 
-    // Save the token to our prompt ctxt
-    if (s_ctx.tokens.size() == s_ctx.n_ctx)
-        s_ctx.tokens.erase(s_ctx.tokens.begin());
-    s_ctx.tokens.push_back(token);
-
-    // m_responseTokens and m_responseLogits are related to last prompt/response not
-    // the entire context window which we can reset on regenerate prompt
-    ++m_responseTokens;
-    if (!response.empty()) {
+    // check for error
+    if (token < 0) {
         m_response.append(response);
         emit responseChanged();
+        return false;
     }
+
+    // m_promptResponseTokens and m_responseLogits are related to last prompt/response not
+    // the entire context window which we can reset on regenerate prompt
+    ++m_promptResponseTokens;
+    Q_ASSERT(!response.empty());
+    m_response.append(response);
+    emit responseChanged();
 
     // Stop generation if we encounter prompt or response tokens
     QString r = QString::fromStdString(m_response);
@@ -290,6 +317,7 @@ bool LLMObject::prompt(const QString &prompt, const QString &prompt_template, in
     QString instructPrompt = prompt_template.arg(prompt);
 
     m_stopGenerating = false;
+    auto promptFunc = std::bind(&LLMObject::handlePrompt, this, std::placeholders::_1);
     auto responseFunc = std::bind(&LLMObject::handleResponse, this, std::placeholders::_1,
         std::placeholders::_2);
     auto recalcFunc = std::bind(&LLMObject::handleRecalculate, this, std::placeholders::_1);
@@ -302,7 +330,7 @@ bool LLMObject::prompt(const QString &prompt, const QString &prompt_template, in
     s_ctx.n_batch = n_batch;
     s_ctx.repeat_penalty = repeat_penalty;
     s_ctx.repeat_last_n = repeat_penalty_tokens;
-    m_llmodel->prompt(instructPrompt.toStdString(), responseFunc, recalcFunc, s_ctx);
+    m_llmodel->prompt(instructPrompt.toStdString(), promptFunc, responseFunc, recalcFunc, s_ctx);
     m_responseLogits += s_ctx.logits.size() - logitsBefore;
     std::string trimmed = trim_whitespace(m_response);
     if (trimmed != m_response) {
@@ -424,6 +452,8 @@ int32_t LLM::threadCount() {
 
 bool LLM::checkForUpdates() const
 {
+    Network::globalInstance()->sendCheckForUpdates();
+
 #if defined(Q_OS_LINUX)
     QString tool("maintenancetool");
 #elif defined(Q_OS_WINDOWS)

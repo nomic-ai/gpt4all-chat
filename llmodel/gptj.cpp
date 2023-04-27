@@ -686,8 +686,9 @@ bool GPTJ::isModelLoaded() const
 }
 
 void GPTJ::prompt(const std::string &prompt,
-        std::function<bool(int32_t, const std::string&)> response,
-        std::function<bool(bool)> recalculate,
+        std::function<bool(int32_t)> promptCallback,
+        std::function<bool(int32_t, const std::string&)> responseCallback,
+        std::function<bool(bool)> recalculateCallback,
         PromptContext &promptCtx) {
 
     if (!isModelLoaded()) {
@@ -706,6 +707,13 @@ void GPTJ::prompt(const std::string &prompt,
 
     // save the context size
     promptCtx.n_ctx = d_ptr->model.hparams.n_ctx;
+
+    if ((int) embd_inp.size() > promptCtx.n_ctx - 4) {
+        responseCallback(-1, "ERROR: The prompt size exceeds the context window size and cannot be processed.");
+        std::cerr << "GPT-J ERROR: The prompt is" << embd_inp.size() <<
+            "tokens and the context window is" << promptCtx.n_ctx << "!\n";
+        return;
+    }
 
     promptCtx.n_predict = std::min(promptCtx.n_predict, promptCtx.n_ctx - (int) embd_inp.size());
     promptCtx.n_past = std::min(promptCtx.n_past, promptCtx.n_ctx);
@@ -734,7 +742,7 @@ void GPTJ::prompt(const std::string &prompt,
             std::cerr << "GPTJ: reached the end of the context window so resizing\n";
             promptCtx.tokens.erase(promptCtx.tokens.begin(), promptCtx.tokens.begin() + erasePoint);
             promptCtx.n_past = promptCtx.tokens.size();
-            recalculateContext(promptCtx, recalculate);
+            recalculateContext(promptCtx, recalculateCallback);
             assert(promptCtx.n_past + batch.size() <= promptCtx.n_ctx);
         }
 
@@ -743,11 +751,15 @@ void GPTJ::prompt(const std::string &prompt,
             std::cerr << "GPT-J ERROR: Failed to process prompt\n";
             return;
         }
-        // We pass a null string for each token to see if the user has asked us to stop...
+
         size_t tokens = batch_end - i;
-        for (size_t t = 0; t < tokens; ++t)
-            if (!response(batch.at(t), ""))
+        for (size_t t = 0; t < tokens; ++t) {
+            if (promptCtx.tokens.size() == promptCtx.n_ctx)
+                promptCtx.tokens.erase(promptCtx.tokens.begin());
+            promptCtx.tokens.push_back(batch.at(t));
+            if (!promptCallback(batch.at(t)))
                 return;
+        }
         promptCtx.n_past += batch.size();
         i = batch_end;
     }
@@ -783,8 +795,8 @@ void GPTJ::prompt(const std::string &prompt,
             std::cerr << "GPTJ: reached the end of the context window so resizing\n";
             promptCtx.tokens.erase(promptCtx.tokens.begin(), promptCtx.tokens.begin() + erasePoint);
             promptCtx.n_past = promptCtx.tokens.size();
-            recalculateContext(promptCtx, recalculate);
-            assert(promptCtx.n_past + batch.size() <= promptCtx.n_ctx);
+            recalculateContext(promptCtx, recalculateCallback);
+            assert(promptCtx.n_past + 1 <= promptCtx.n_ctx);
         }
 
         const int64_t t_start_predict_us = ggml_time_us();
@@ -798,7 +810,14 @@ void GPTJ::prompt(const std::string &prompt,
         promptCtx.n_past += 1;
         // display text
         ++totalPredictions;
-        if (id == 50256 /*end of text*/ || !response(id, d_ptr->vocab.id_to_token[id]))
+
+        if (id == 50256 /*end of text*/)
+            goto stop_generating;
+
+        if (promptCtx.tokens.size() == promptCtx.n_ctx)
+            promptCtx.tokens.erase(promptCtx.tokens.begin());
+        promptCtx.tokens.push_back(id);
+        if (!responseCallback(id, d_ptr->vocab.id_to_token[id]))
             goto stop_generating;
     }
 

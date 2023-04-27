@@ -687,7 +687,7 @@ Window {
                             x: globalPoint.x
                             y: globalPoint.y
                             property string text: currentResponse ? LLM.response : (value ? value : "")
-                            response: newResponse === "" ? text : newResponse
+                            response: newResponse === undefined || newResponse === "" ? text : newResponse
                             onAccepted: {
                                 var responseHasChanged = response !== text && response !== newResponse
                                 if (thumbsDownState && !thumbsUpState && !responseHasChanged)
@@ -864,7 +864,9 @@ Window {
                 id: textInput
                 color: theme.textColor
                 padding: 20
+                rightPadding: 40
                 enabled: LLM.isModelLoaded
+                wrapMode: Text.WordWrap
                 font.pixelSize: theme.fontSizeLarge
                 placeholderText: qsTr("Send a message...")
                 placeholderTextColor: theme.backgroundLightest
