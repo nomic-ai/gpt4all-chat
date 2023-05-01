@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import llm
+import download
 import network
 
 Window {
@@ -17,9 +18,65 @@ Window {
         id: theme
     }
 
-    property string chatId: Network.generateUniqueId()
+    property var chatModel: LLM.currentChat.chatModel
 
     color: theme.textColor
+
+    // Startup code
+    Component.onCompleted: {
+        startupDialogs();
+    }
+
+    Connections {
+        target: firstStartDialog
+        function onClosed() {
+            startupDialogs();
+        }
+    }
+
+    Connections {
+        target: downloadNewModels
+        function onClosed() {
+            startupDialogs();
+        }
+    }
+
+    Connections {
+        target: Download
+        function onHasNewerReleaseChanged() {
+            startupDialogs();
+        }
+    }
+
+    function startupDialogs() {
+        // check for first time start of this version
+        if (Download.isFirstStart()) {
+            firstStartDialog.open();
+            return;
+        }
+
+        // check for any current models and if not, open download dialog
+        if (LLM.modelList.length === 0 && !firstStartDialog.opened) {
+            downloadNewModels.open();
+            return;
+        }
+
+        // check for new version
+        if (Download.hasNewerRelease && !firstStartDialog.opened && !downloadNewModels.opened) {
+            newVersionDialog.open();
+            return;
+        }
+    }
+
+    StartupDialog {
+        id: firstStartDialog
+        anchors.centerIn: parent
+    }
+
+    NewVersionDialog {
+        id: newVersionDialog
+        anchors.centerIn: parent
+    }
 
     Item {
         Accessible.role: Accessible.Window
@@ -114,7 +171,7 @@ Window {
                 onActivated: {
                     LLM.stopGenerating()
                     LLM.modelName = comboBox.currentText
-                    chatModel.clear()
+                    LLM.currentChat.reset();
                 }
             }
         }
@@ -416,8 +473,7 @@ Window {
         onClicked: {
             LLM.stopGenerating()
             LLM.resetContext()
-            chatId = Network.generateUniqueId()
-            chatModel.clear()
+            LLM.currentChat.reset();
         }
     }
 
@@ -609,10 +665,6 @@ Window {
             anchors.bottomMargin: 30
             ScrollBar.vertical.policy: ScrollBar.AlwaysOn
 
-            ListModel {
-                id: chatModel
-            }
-
             Rectangle {
                 anchors.fill: parent
                 color: theme.backgroundLighter
@@ -693,10 +745,10 @@ Window {
                                 if (thumbsDownState && !thumbsUpState && !responseHasChanged)
                                     return
 
-                                newResponse = response
-                                thumbsDownState = true
-                                thumbsUpState = false
-                                Network.sendConversation(chatId, getConversationJson());
+                                chatModel.updateNewResponse(index, response)
+                                chatModel.updateThumbsUpState(index, false)
+                                chatModel.updateThumbsDownState(index, true)
+                                Network.sendConversation(LLM.currentChat.id, getConversationJson());
                             }
                         }
 
@@ -725,10 +777,10 @@ Window {
                                         if (thumbsUpState && !thumbsDownState)
                                             return
 
-                                        newResponse = ""
-                                        thumbsUpState = true
-                                        thumbsDownState = false
-                                        Network.sendConversation(chatId, getConversationJson());
+                                        chatModel.updateNewResponse(index, "")
+                                        chatModel.updateThumbsUpState(index, true)
+                                        chatModel.updateThumbsDownState(index, false)
+                                        Network.sendConversation(LLM.currentChat.id, getConversationJson());
                                     }
                                 }
 
@@ -805,8 +857,8 @@ Window {
             }
             leftPadding: 50
             onClicked: {
-                if (chatModel.count)
-                    var listElement = chatModel.get(chatModel.count - 1)
+                var index = Math.max(0, chatModel.count - 1);
+                var listElement = chatModel.get(index);
 
                 if (LLM.responseInProgress) {
                     listElement.stopped = true
@@ -815,12 +867,12 @@ Window {
                     LLM.regenerateResponse()
                     if (chatModel.count) {
                         if (listElement.name === qsTr("Response: ")) {
-                            listElement.currentResponse = true
-                            listElement.stopped = false
-                            listElement.value = LLM.response
-                            listElement.thumbsUpState = false
-                            listElement.thumbsDownState = false
-                            listElement.newResponse = ""
+                            chatModel.updateCurrentResponse(index, true);
+                            chatModel.updateStopped(index, false);
+                            chatModel.updateValue(index, LLM.response);
+                            chatModel.updateThumbsUpState(index, false);
+                            chatModel.updateThumbsDownState(index, false);
+                            chatModel.updateNewResponse(index, "");
                             LLM.prompt(listElement.prompt, settingsDialog.promptTemplate,
                                        settingsDialog.maxLength,
                                        settingsDialog.topK, settingsDialog.topP,
@@ -892,18 +944,14 @@ Window {
                     LLM.stopGenerating()
 
                     if (chatModel.count) {
-                        var listElement = chatModel.get(chatModel.count - 1)
-                        listElement.currentResponse = false
-                        listElement.value = LLM.response
+                        var index = Math.max(0, chatModel.count - 1);
+                        var listElement = chatModel.get(index);
+                        chatModel.updateCurrentResponse(index, false);
+                        chatModel.updateValue(index, LLM.response);
                     }
                     var prompt = textInput.text + "\n"
-                    chatModel.append({"name": qsTr("Prompt: "), "currentResponse": false,
-                        "value": textInput.text})
-                    chatModel.append({"id": chatModel.count, "name": qsTr("Response: "),
-                        "currentResponse": true, "value": "", "stopped": false,
-                        "thumbsUpState": false, "thumbsDownState": false,
-                        "newResponse": "",
-                        "prompt": prompt})
+                    chatModel.appendPrompt(qsTr("Prompt: "), textInput.text);
+                    chatModel.appendResponse(qsTr("Response: "), prompt);
                     LLM.resetResponse()
                     LLM.prompt(prompt, settingsDialog.promptTemplate,
                                settingsDialog.maxLength,

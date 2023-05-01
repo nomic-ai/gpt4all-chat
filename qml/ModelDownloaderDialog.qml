@@ -1,6 +1,8 @@
+import QtCore
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Basic
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import download
 import llm
@@ -8,7 +10,7 @@ import llm
 Dialog {
     id: modelDownloaderDialog
     width: 1024
-    height: 435
+    height: 600
     modal: true
     opacity: 0.9
     closePolicy: LLM.modelList.length === 0 ? Popup.NoAutoClose : (Popup.CloseOnEscape | Popup.CloseOnPressOutside)
@@ -21,9 +23,19 @@ Dialog {
         radius: 10
     }
 
+    property string defaultModelPath: Download.defaultLocalModelsPath()
+    property alias modelPath: settings.modelPath
+    Settings {
+        id: settings
+        property string modelPath: modelDownloaderDialog.defaultModelPath
+    }
+
     Component.onCompleted: {
-        if (LLM.modelList.length === 0)
-            open();
+        Download.downloadLocalModelsPath = settings.modelPath
+    }
+
+    Component.onDestruction: {
+        settings.sync()
     }
 
     ColumnLayout {
@@ -54,7 +66,8 @@ Dialog {
                 delegate: Item {
                     id: delegateItem
                     width: modelList.width
-                    height: 70
+                    height: modelName.height + modelName.padding
+                        + description.height + description.padding
                     objectName: "delegateItem"
                     property bool downloading: false
                     Rectangle {
@@ -67,22 +80,38 @@ Dialog {
                         objectName: "modelName"
                         property string filename: modelData.filename
                         text: filename.slice(5, filename.length - 4)
-                        anchors.verticalCenter: parent.verticalCenter
+                        padding: 20
+                        anchors.top: parent.top
                         anchors.left: parent.left
-                        anchors.leftMargin: 10
-                        color: theme.textColor
+                        font.bold: modelData.isDefault || modelData.bestGPTJ || modelData.bestLlama
+                        color: theme.assistantColor
                         Accessible.role: Accessible.Paragraph
                         Accessible.name: qsTr("Model file")
                         Accessible.description: qsTr("Model file to be downloaded")
                     }
 
                     Text {
+                        id: description
+                        text: "    - " + modelData.description
+                        leftPadding: 20
+                        rightPadding: 20
+                        anchors.top: modelName.bottom
+                        anchors.left: modelName.left
+                        anchors.right: parent.right
+                        wrapMode: Text.WordWrap
+                        color: theme.textColor
+                        Accessible.role: Accessible.Paragraph
+                        Accessible.name: qsTr("Description")
+                        Accessible.description: qsTr("The description of the file")
+                    }
+
+                    Text {
                         id: isDefault
                         text: qsTr("(default)")
                         visible: modelData.isDefault
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: modelName.top
                         anchors.left: modelName.right
-                        anchors.leftMargin: 10
+                        padding: 20
                         color: theme.textColor
                         Accessible.role: Accessible.Paragraph
                         Accessible.name: qsTr("Default file")
@@ -91,9 +120,9 @@ Dialog {
 
                     Text {
                         text: modelData.filesize
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: modelName.top
                         anchors.left: isDefault.visible ? isDefault.right : modelName.right
-                        anchors.leftMargin: 10
+                        padding: 20
                         color: theme.textColor
                         Accessible.role: Accessible.Paragraph
                         Accessible.name: qsTr("File size")
@@ -102,9 +131,9 @@ Dialog {
 
                     Label {
                         id: speedLabel
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: modelName.top
                         anchors.right: itemProgressBar.left
-                        anchors.rightMargin: 10
+                        padding: 20
                         objectName: "speedLabel"
                         color: theme.textColor
                         text: ""
@@ -117,9 +146,10 @@ Dialog {
                     ProgressBar {
                         id: itemProgressBar
                         objectName: "itemProgressBar"
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: modelName.top
                         anchors.right: downloadButton.left
-                        anchors.rightMargin: 10
+                        anchors.topMargin: 20
+                        anchors.rightMargin: 20
                         width: 100
                         visible: downloading
                         background: Rectangle {
@@ -137,7 +167,7 @@ Dialog {
                                 width: itemProgressBar.visualPosition * parent.width
                                 height: parent.height
                                 radius: 2
-                                color: theme.backgroundLightest
+                                color: theme.assistantColor
                             }
                         }
                         Accessible.role: Accessible.ProgressBar
@@ -147,15 +177,13 @@ Dialog {
 
                     Item {
                         visible: modelData.calcHash
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: modelName.top
                         anchors.right: parent.right
-                        anchors.rightMargin: 10
 
                         Label {
                             id: calcHashLabel
                             anchors.right: busyCalcHash.left
-                            anchors.rightMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
+                            padding: 20
                             objectName: "calcHashLabel"
                             color: theme.textColor
                             text: qsTr("Calculating MD5...")
@@ -167,7 +195,7 @@ Dialog {
                         BusyIndicator {
                             id: busyCalcHash
                             anchors.right: parent.right
-                            anchors.verticalCenter: calcHashLabel.verticalCenter
+                            padding: 20
                             running: modelData.calcHash
                             Accessible.role: Accessible.Animation
                             Accessible.name: qsTr("Busy indicator")
@@ -177,9 +205,9 @@ Dialog {
 
                     Label {
                         id: installedLabel
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: modelName.top
                         anchors.right: parent.right
-                        anchors.rightMargin: 15
+                        padding: 20
                         objectName: "installedLabel"
                         color: theme.textColor
                         text: qsTr("Already installed")
@@ -195,11 +223,11 @@ Dialog {
                             color: theme.textColor
                             text: downloading ? "Cancel" : "Download"
                         }
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: modelName.top
                         anchors.right: parent.right
-                        anchors.rightMargin: 10
+                        anchors.topMargin: 15
+                        anchors.rightMargin: 20
                         visible: !modelData.installed && !modelData.calcHash
-                        padding: 10
                         onClicked: {
                             if (!downloading) {
                                 downloading = true;
@@ -290,16 +318,62 @@ Dialog {
             }
         }
 
-        Label {
-            Layout.alignment: Qt.AlignLeft
+        RowLayout {
+            Layout.alignment: Qt.AlignCenter
             Layout.fillWidth: true
-            text: qsTr("NOTE: models will be downloaded to\n") + Download.downloadLocalModelsPath
-            wrapMode: Text.WrapAnywhere
-            horizontalAlignment: Text.AlignHCenter
-            color: theme.textColor
-            Accessible.role: Accessible.Paragraph
-            Accessible.name: qsTr("Model download path")
-            Accessible.description: qsTr("The path where downloaded models will be saved.")
+            spacing: 20
+            FolderDialog {
+                id: modelPathDialog
+                title: "Please choose a directory"
+                currentFolder: Download.downloadLocalModelsPath
+                onAccepted: {
+                    Download.downloadLocalModelsPath = selectedFolder
+                    settings.modelPath = Download.downloadLocalModelsPath
+                    settings.sync()
+                }
+            }
+            Label {
+                id: modelPathLabel
+                text: qsTr("Download path:")
+                color: theme.textColor
+                Layout.row: 1
+                Layout.column: 0
+            }
+            TextField {
+                id: modelPathDisplayLabel
+                text: Download.downloadLocalModelsPath
+                readOnly: true
+                color: theme.textColor
+                Layout.fillWidth: true
+                ToolTip.text: qsTr("Path where model files will be downloaded to")
+                ToolTip.visible: hovered
+                Accessible.role: Accessible.ToolTip
+                Accessible.name: modelPathDisplayLabel.text
+                Accessible.description: ToolTip.text
+                background: Rectangle {
+                    color: theme.backgroundLighter
+                    radius: 10
+                }
+            }
+            Button {
+                text: qsTr("Browse")
+                contentItem: Text {
+                    text: qsTr("Browse")
+                    horizontalAlignment: Text.AlignHCenter
+                    color: theme.textColor
+                    Accessible.role: Accessible.Button
+                    Accessible.name: text
+                    Accessible.description: qsTr("Opens a folder picker dialog to choose where to save model files")
+                }
+                background: Rectangle {
+                    opacity: .5
+                    border.color: theme.backgroundLightest
+                    border.width: 1
+                    radius: 10
+                    color: theme.backgroundLight
+                }
+                onClicked: modelPathDialog.open()
+            }
         }
     }
 }

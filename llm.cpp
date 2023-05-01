@@ -1,12 +1,15 @@
 #include "llm.h"
 #include "download.h"
 #include "network.h"
+#include "llmodel/gptj.h"
+#include "llmodel/llamamodel.h"
 
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QProcess>
 #include <QResource>
+#include <QSettings>
 #include <fstream>
 
 class MyLLM: public LLM { };
@@ -21,13 +24,13 @@ static LLModel::PromptContext s_ctx;
 static QString modelFilePath(const QString &modelName)
 {
     QString appPath = QCoreApplication::applicationDirPath()
-        + QDir::separator() + "ggml-" + modelName + ".bin";
+        + "/ggml-" + modelName + ".bin";
     QFileInfo infoAppPath(appPath);
     if (infoAppPath.exists())
         return appPath;
 
     QString downloadPath = Download::globalInstance()->downloadLocalModelsPath()
-        + QDir::separator() + "ggml-" + modelName + ".bin";
+        + "/ggml-" + modelName + ".bin";
 
     QFileInfo infoLocalPath(downloadPath);
     if (infoLocalPath.exists())
@@ -61,7 +64,12 @@ bool LLMObject::loadModel()
         return false;
     }
 
-    return loadModelPrivate(models.first());
+    QSettings settings;
+    settings.sync();
+    QString defaultModel = settings.value("defaultModel", "gpt4all-j-v1.3-groovy").toString();
+    if (defaultModel.isEmpty() || !models.contains(defaultModel))
+        defaultModel = models.first();
+    return loadModelPrivate(defaultModel);
 }
 
 bool LLMObject::loadModelPrivate(const QString &modelName)
@@ -85,14 +93,14 @@ bool LLMObject::loadModelPrivate(const QString &modelName)
     if (info.exists()) {
 
         auto fin = std::ifstream(filePath.toStdString(), std::ios::binary);
-
         uint32_t magic;
         fin.read((char *) &magic, sizeof(magic));
         fin.seekg(0);
+        fin.close();
         isGPTJ = magic == 0x67676d6c;
         if (isGPTJ) {
             m_llmodel = new GPTJ;
-            m_llmodel->loadModel(modelName.toStdString(), fin);
+            m_llmodel->loadModel(filePath.toStdString());
         } else {
             m_llmodel = new LLamaModel;
             m_llmodel->loadModel(filePath.toStdString());
@@ -291,11 +299,6 @@ bool LLMObject::handleResponse(int32_t token, const std::string &response)
     Q_ASSERT(!response.empty());
     m_response.append(response);
     emit responseChanged();
-
-    // Stop generation if we encounter prompt or response tokens
-    QString r = QString::fromStdString(m_response);
-    if (r.contains("### Prompt:") || r.contains("### Response:"))
-        return false;
     return !m_stopGenerating;
 }
 
@@ -344,6 +347,7 @@ bool LLMObject::prompt(const QString &prompt, const QString &prompt_template, in
 
 LLM::LLM()
     : QObject{nullptr}
+    , m_currentChat(new Chat)
     , m_llmodel(new LLMObject)
     , m_responseInProgress(false)
 {
@@ -463,7 +467,7 @@ bool LLM::checkForUpdates() const
 #endif
 
     QString fileName = QCoreApplication::applicationDirPath()
-        + QDir::separator() + ".." + QDir::separator() + tool;
+        + "/../" + tool;
     if (!QFileInfo::exists(fileName)) {
         qDebug() << "Couldn't find tool at" << fileName << "so cannot check for updates!";
         return false;

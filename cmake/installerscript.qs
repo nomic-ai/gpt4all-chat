@@ -31,7 +31,12 @@ Component.prototype.createOperations = function()
                 "iconPath=" + targetDirectory + "/favicon.ico",
                 "iconId=0", "description=Open GPT4All");
         } else if (systemInfo.productType === "osx") {
-            targetDirectory += "/gpt4all.app/Contents/MacOS/"
+            var gpt4allAppPath = targetDirectory + "/bin/gpt4all.app";
+            var symlinkPath = targetDirectory + "/../GPT4All.app";
+            // Remove the symlink if it already exists
+            component.addOperation("Execute", "rm", "-f", symlinkPath);
+            // Create the symlink
+            component.addOperation("Execute", "ln", "-s", gpt4allAppPath, symlinkPath);
         } else { // linux
             var homeDir = installer.environmentVariable("HOME");
             if (!installer.fileExists(homeDir + "/Desktop/GPT4All.desktop")) {
@@ -44,5 +49,20 @@ Component.prototype.createOperations = function()
         }
     } catch (e) {
         print("ERROR: running post installscript.qs" + e);
+    }
+}
+
+Component.prototype.createOperationsForArchive = function(archive)
+{
+    component.createOperationsForArchive(archive);
+
+    if (systemInfo.productType === "osx") {
+        var uninstallTargetDirectory = installer.value("TargetDir");
+        var symlinkPath = uninstallTargetDirectory + "/../GPT4All.app";
+
+        // Remove the symlink during uninstallation
+        if (installer.isUninstaller()) {
+            component.addOperation("Execute", "rm", "-f", symlinkPath, "UNDOEXECUTE");
+        }
     }
 }

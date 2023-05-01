@@ -11,8 +11,8 @@ import llm
 Dialog {
     id: settingsDialog
     modal: true
+    width: 1024
     height: 600
-    width: 600
     opacity: 0.9
     background: Rectangle {
         anchors.fill: parent
@@ -90,8 +90,11 @@ The prompt below is a question to answer, a task to complete, or a conversation 
         Download.downloadLocalModelsPath = settings.modelPath
     }
 
-    Component.onDestruction: {
-        settings.sync()
+    Connections {
+        target: settingsDialog
+        function onClosed() {
+            settings.sync()
+        }
     }
 
     Item {
@@ -190,7 +193,9 @@ The prompt below is a question to answer, a task to complete, or a conversation 
                         ToolTip.visible: hovered
                         Layout.row: 0
                         Layout.column: 1
-                        validator: DoubleValidator {}
+                        validator: DoubleValidator {
+                            locale: "C"
+                        }
                         onEditingFinished: {
                             var val = parseFloat(text)
                             if (!isNaN(val)) {
@@ -225,7 +230,9 @@ The prompt below is a question to answer, a task to complete, or a conversation 
                         ToolTip.visible: hovered
                         Layout.row: 1
                         Layout.column: 1
-                        validator: DoubleValidator {}
+                        validator: DoubleValidator {
+                            locale: "C"
+                        }
                         onEditingFinished: {
                             var val = parseFloat(text)
                             if (!isNaN(val)) {
@@ -372,7 +379,9 @@ The prompt below is a question to answer, a task to complete, or a conversation 
                         ToolTip.visible: hovered
                         Layout.row: 5
                         Layout.column: 1
-                        validator: DoubleValidator {}
+                        validator: DoubleValidator {
+                            locale: "C"
+                        }
                         onEditingFinished: {
                             var val = parseFloat(text)
                             if (!isNaN(val)) {
@@ -529,6 +538,7 @@ The prompt below is a question to answer, a task to complete, or a conversation 
                     FolderDialog {
                         id: modelPathDialog
                         title: "Please choose a directory"
+                        currentFolder: Download.downloadLocalModelsPath
                         onAccepted: {
                             Download.downloadLocalModelsPath = selectedFolder
                             settings.modelPath = Download.downloadLocalModelsPath
@@ -537,24 +547,29 @@ The prompt below is a question to answer, a task to complete, or a conversation 
                     }
                     Label {
                         id: modelPathLabel
-                        text: qsTr("Model file path:")
+                        text: qsTr("Download path:")
                         color: theme.textColor
                         Layout.row: 1
                         Layout.column: 0
                     }
                     TextField {
                         id: modelPathDisplayLabel
-                        text: settings.modelPath
+                        text: Download.downloadLocalModelsPath
                         readOnly: true
                         color: theme.textColor
                         implicitWidth: 300
                         Layout.row: 1
                         Layout.column: 1
+                        Layout.fillWidth: true
                         ToolTip.text: qsTr("Path where model files will be downloaded to")
                         ToolTip.visible: hovered
                         Accessible.role: Accessible.ToolTip
-                        Accessible.name: topKLabel.text
+                        Accessible.name: modelPathDisplayLabel.text
                         Accessible.description: ToolTip.text
+                        background: Rectangle {
+                            color: theme.backgroundLighter
+                            radius: 10
+                        }
                     }
                     Button {
                         Layout.row: 1

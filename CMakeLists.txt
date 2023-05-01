@@ -13,8 +13,8 @@ if(APPLE)
 endif()
 
 set(APP_VERSION_MAJOR 2)
-set(APP_VERSION_MINOR 2)
-set(APP_VERSION_PATCH 2)
+set(APP_VERSION_MINOR 3)
+set(APP_VERSION_PATCH 1)
 set(APP_VERSION "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}")
 
 # Generate a header file with the version number
@@ -34,6 +34,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(GPT4ALL_LOCALHOST OFF "Build installer for localhost repo")
 option(GPT4ALL_AVX_ONLY OFF "Build for avx only")
+option(GPT4ALL_OFFLINE_INSTALLER "Build an offline installer" OFF)
 
 find_package(Qt6 6.2 COMPONENTS Core Quick QuickDialogs2 Svg REQUIRED)
 
@@ -53,8 +54,11 @@ message(STATUS "Qt 6 root directory: ${Qt6_ROOT_DIR}")
 
 add_subdirectory(llmodel)
 
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 qt_add_executable(chat
     main.cpp
+    chat.h chat.cpp chatmodel.h
     download.h download.cpp
     network.h network.cpp
     llm.h llm.cpp
@@ -65,10 +69,12 @@ qt_add_qml_module(chat
     VERSION 1.0
     QML_FILES
       main.qml
-      qml/NetworkDialog.qml
       qml/ModelDownloaderDialog.qml
+      qml/NetworkDialog.qml
+      qml/NewVersionDialog.qml
       qml/ThumbsDownDialog.qml
       qml/SettingsDialog.qml
+      qml/StartupDialog.qml
       qml/PopupDialog.qml
       qml/Theme.qml
     RESOURCES
@@ -82,11 +88,8 @@ qt_add_qml_module(chat
       icons/thumbs_up.svg
       icons/thumbs_down.svg
       icons/logo.svg
-      icons/logo-16.png
       icons/logo-32.png
       icons/logo-48.png
-      icons/logo-64.png
-      icons/logo-256.png
       icons/favicon.ico
       icons/favicon.icns
 )
@@ -154,7 +157,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES Darwin)
     set(CPACK_IFW_ROOT "~/Qt/Tools/QtInstallerFramework/4.5")
     set(CPACK_IFW_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/icons/favicon.icns")
     set(CPACK_PACKAGE_FILE_NAME "${COMPONENT_NAME_MAIN}-installer-darwin")
-    set(CPACK_IFW_TARGET_DIRECTORY "@HomeDir@/Applications/${COMPONENT_NAME_MAIN}")
+    set(CPACK_IFW_TARGET_DIRECTORY "@ApplicationsDir@/${COMPONENT_NAME_MAIN}")
     set(CPACK_BUNDLE_NAME ${COMPONENT_NAME_MAIN})
     set(CPACK_BUNDLE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/icons/favicon.icns")
 endif()
@@ -178,6 +181,7 @@ set(CPACK_IFW_PACKAGE_LOGO "${CMAKE_CURRENT_SOURCE_DIR}/icons/logo-48.png")
 set(CPACK_IFW_PACKAGE_WINDOW_ICON "${CMAKE_CURRENT_SOURCE_DIR}/icons/logo-32.png")
 set(CPACK_IFW_PACKAGE_WIZARD_SHOW_PAGE_LIST OFF)
 
+include(InstallRequiredSystemLibraries)
 include(CPack)
 include(CPackIFW)
 cpack_add_component(${COMPONENT_NAME_MAIN} DOWNLOADED)
@@ -189,6 +193,8 @@ cpack_ifw_configure_component(${COMPONENT_NAME_MAIN} REPLACES "gpt4all-chat") #W
 
 if (GPT4ALL_LOCALHOST)
     cpack_ifw_add_repository("GPT4AllRepository" URL "http://localhost/repository")
+elseif(GPT4ALL_OFFLINE_INSTALLER)
+    cpack_ifw_add_repository("GPT4AllRepository" URL "file://${CMAKE_BINARY_DIR}/packages")
 else()
   if(${CMAKE_SYSTEM_NAME} MATCHES Linux)
     if (GPT4ALL_AVX_ONLY)
