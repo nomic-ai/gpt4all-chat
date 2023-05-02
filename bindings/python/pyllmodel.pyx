@@ -1,5 +1,9 @@
 from libcpp cimport bool
 
+from io import StringIO
+import re
+import sys
+
 cdef extern from "<stdint.h>":
     ctypedef unsigned char uint8_t
     ctypedef signed char int8_t
@@ -85,7 +89,14 @@ cdef class LLModel:
                        &prompt_context)
 
     def generate(self, prompt: str):
+        old_stdout = sys.stdout 
+        collect_response = StringIO()
+        sys.stdout  = collect_response
+        
         self._generate_c(prompt)
+        response = collect_response.getvalue()
+        sys.stdout = old_stdout
+        return re.sub(r"\n(?!\n)", "", response)
 
 
 cdef class GPTJModel(LLModel):
@@ -100,8 +111,6 @@ cdef class GPTJModel(LLModel):
         self.model_type = "gptj"
 
 
-
-"""
 cdef class LlamaModel(LLModel):
 
     def __cinit__(self):
@@ -112,50 +121,21 @@ cdef class LlamaModel(LLModel):
 
     def __init__(self):
         self.model_type = "llama"
-"""
-
-
 
 
 cdef bool empty_prompt_callback(int32_t token_id, const char* response):
     return True
 
 cdef bool empty_response_callback(int32_t token_id, const char* response):
-    print(response)
+    print(response.decode('utf-8'))
     return True
 
 cdef bool empty_recalculate_callback(bool is_recalculating):
     return is_recalculating
 
-"""
-cdef prompt_gptj(llmodel_model model, prompt):
-    pass
-
-cdef void load_and_prompt_gptj(model_path: str):
-    gptj_model = load_gptj_model(model_path)
-
-    cdef llmodel_prompt_context prompt_context
+def test():
+    gptj_model = GPTJModel()
+    gptj_model.load_model("models_temp/ggml-gpt4all-j-v1.3-groovy.bin")  
+    response = gptj_model.generate("hello there")    
     
-    prompt_context.logits_size = 0
-    prompt_context.tokens_size = 0
-    prompt_context.n_past = 0
-    prompt_context.n_ctx = 1024
-    prompt_context.n_predict = 128
-    prompt_context.top_k = 40
-    prompt_context.top_p = 0.9
-    prompt_context.temp = .9
-    prompt_context.n_batch = 8
-    prompt_context.repeat_penalty = 1.2
-    prompt_context.repeat_last_n = 10
-    prompt_context.context_erase = 0.5
-
-    prompt = "### Instruction:\n The prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response."
-    prompt += "\n### Prompt: hello there"
-    prompt += "\n### Response:"
-    prompt = prompt.encode('utf-8')
-    print("TIME TO PROMPT")
-    llmodel_prompt(gptj_model, prompt, empty_prompt_callback, empty_response_callback, empty_recalculate_callback, &prompt_context)
-
-def python_load_and_prompt_gpt(model_path: str):
-    load_and_prompt_gptj(model_path)
-"""
+    return response
