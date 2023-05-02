@@ -53,7 +53,7 @@ cdef class LLModel:
     cdef llmodel_model model
     model_type: str
 
-    def load_model(self, model_path: str):
+    def load_model(self, model_path: str) -> bool:
         llmodel_loadModel(self.model, model_path.encode('utf-8'))
 
         if llmodel_isModelLoaded(self.model):
@@ -61,39 +61,67 @@ cdef class LLModel:
         else:
             return False
 
-    cdef void _generate_c(self, str prompt):
+    cdef void _generate_c(self, 
+                          prompt, # utf-8 bytestring
+                          size_t logits_size = 0, 
+                          size_t tokens_size = 0, 
+                          int32_t n_past = 0, 
+                          int32_t n_ctx = 1024, 
+                          int32_t n_predict = 128, 
+                          int32_t top_k = 40, 
+                          float top_p = .9, 
+                          float temp = .9, 
+                          int32_t n_batch = 8, 
+                          float repeat_penalty = 1.2, 
+                          int32_t repeat_last_n = 10, 
+                          float context_erase = .5):
+    
         cdef llmodel_prompt_context prompt_context
     
-        prompt_context.logits_size = 0
-        prompt_context.tokens_size = 0
-        prompt_context.n_past = 0
-        prompt_context.n_ctx = 1024
-        prompt_context.n_predict = 128
-        prompt_context.top_k = 40
-        prompt_context.top_p = 0.9
-        prompt_context.temp = .9
-        prompt_context.n_batch = 8
-        prompt_context.repeat_penalty = 1.2
-        prompt_context.repeat_last_n = 10
-        prompt_context.context_erase = 0.5
+        prompt_context.logits_size = logits_size
+        prompt_context.tokens_size = tokens_size
+        prompt_context.n_past = n_past
+        prompt_context.n_ctx = n_ctx
+        prompt_context.n_predict = n_predict
+        prompt_context.top_k = top_k
+        prompt_context.top_p = top_p
+        prompt_context.temp = temp
+        prompt_context.n_batch = n_batch
+        prompt_context.repeat_penalty = repeat_penalty
+        prompt_context.repeat_last_n = repeat_last_n
+        prompt_context.context_erase = context_erase
 
-        full_prompt = "### Instruction:\n The prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response."
-        full_prompt += f"\n### Prompt: {prompt}"
-        full_prompt += "\n### Response:"
-        full_prompt = full_prompt.encode('utf-8')
         llmodel_prompt(self.model, 
-                       full_prompt, 
+                       prompt, 
                        empty_prompt_callback, 
                        empty_response_callback, 
                        empty_recalculate_callback, 
                        &prompt_context)
 
-    def generate(self, prompt: str):
+    def generate(self, 
+                 prompt: str,
+                 add_default_header: bool = True, 
+                 add_default_footer: bool = True) -> str:
+
+        full_prompt = ""
+        if add_default_header:
+            full_prompt += """### Instruction:\n 
+            The prompt below is a question to answer, a task to complete, or a conversation 
+            to respond to; decide which and write an appropriate response.
+            \n### Prompt: """
+        
+        full_prompt += prompt
+
+        if add_default_footer:
+            full_prompt += "\n### Response:"
+        
+        full_prompt = full_prompt.encode('utf-8')
+
         old_stdout = sys.stdout 
         collect_response = StringIO()
         sys.stdout  = collect_response
         
-        self._generate_c(prompt)
+        self._generate_c(full_prompt)
         response = collect_response.getvalue()
         sys.stdout = old_stdout
         return re.sub(r"\n(?!\n)", "", response)
@@ -136,6 +164,9 @@ cdef bool empty_recalculate_callback(bool is_recalculating):
 def test():
     gptj_model = GPTJModel()
     gptj_model.load_model("models_temp/ggml-gpt4all-j-v1.3-groovy.bin")  
-    response = gptj_model.generate("hello there")    
+    response = gptj_model.generate("Hello there")
+    print(response)    
+    response = gptj_model.generate("Can you list 5 colors?")
+    print(response)
     
-    return response
+    return
