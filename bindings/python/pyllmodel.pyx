@@ -35,7 +35,7 @@ cdef extern from "llmodel_c.h":
     llmodel_model llmodel_gptj_create()
     void llmodel_gptj_destroy(llmodel_model gptj)
     llmodel_model llmodel_llama_create()
-    llmodel_model llmodel_llama_destroy()
+    void llmodel_llama_destroy(llmodel_model llama)
     bool llmodel_loadModel(llmodel_model model, const char *model_path)
     bool llmodel_isModelLoaded(llmodel_model model)
     void llmodel_prompt(llmodel_model model, const char *prompt,
@@ -44,25 +44,78 @@ cdef extern from "llmodel_c.h":
                     llmodel_recalculate_callback recalculate_callback,
                     llmodel_prompt_context *ctx)
 
-cdef class GPTJModel:
+# Abstract model class
+cdef class LLModel:
     cdef llmodel_model model
+    model_type: str
+
+    def load_model(self, model_path: str):
+        llmodel_loadModel(self.model, model_path.encode('utf-8'))
+
+        if llmodel_isModelLoaded(self.model):
+            return True
+        else:
+            return False
+
+    cdef void _generate_c(self, str prompt):
+        cdef llmodel_prompt_context prompt_context
     
+        prompt_context.logits_size = 0
+        prompt_context.tokens_size = 0
+        prompt_context.n_past = 0
+        prompt_context.n_ctx = 1024
+        prompt_context.n_predict = 128
+        prompt_context.top_k = 40
+        prompt_context.top_p = 0.9
+        prompt_context.temp = .9
+        prompt_context.n_batch = 8
+        prompt_context.repeat_penalty = 1.2
+        prompt_context.repeat_last_n = 10
+        prompt_context.context_erase = 0.5
+
+        full_prompt = "### Instruction:\n The prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response."
+        full_prompt += f"\n### Prompt: {prompt}"
+        full_prompt += "\n### Response:"
+        full_prompt = full_prompt.encode('utf-8')
+        llmodel_prompt(self.model, 
+                       full_prompt, 
+                       empty_prompt_callback, 
+                       empty_response_callback, 
+                       empty_recalculate_callback, 
+                       &prompt_context)
+
+    def generate(self, prompt: str):
+        self._generate_c(prompt)
+
+
+cdef class GPTJModel(LLModel):
+
     def __cinit__(self):
         self.model = llmodel_gptj_create()
 
     def __dealloc__(self):
         llmodel_gptj_destroy(self.model)
 
+    def __init__(self):
+        self.model_type = "gptj"
 
-def create_and_destroy_gptj_model():
-    gpjt_model = llmodel_gptj_create()
-    llmodel_gptj_destroy(gpjt_model)
 
-cdef llmodel_model load_gptj_model(model_path: str):
-    model_path_bytestring = model_path.encode()
-    gptj_model = llmodel_gptj_create()
-    llmodel_loadModel(gptj_model, model_path_bytestring)
-    return gptj_model
+
+"""
+cdef class LlamaModel(LLModel):
+
+    def __cinit__(self):
+        self.model = llmodel_llama_create()
+
+    def __dealloc__(self):
+        llmodel_llama_destroy(self.model)
+
+    def __init__(self):
+        self.model_type = "llama"
+"""
+
+
+
 
 cdef bool empty_prompt_callback(int32_t token_id, const char* response):
     return True
@@ -74,6 +127,7 @@ cdef bool empty_response_callback(int32_t token_id, const char* response):
 cdef bool empty_recalculate_callback(bool is_recalculating):
     return is_recalculating
 
+"""
 cdef prompt_gptj(llmodel_model model, prompt):
     pass
 
@@ -104,3 +158,4 @@ cdef void load_and_prompt_gptj(model_path: str):
 
 def python_load_and_prompt_gpt(model_path: str):
     load_and_prompt_gptj(model_path)
+"""
