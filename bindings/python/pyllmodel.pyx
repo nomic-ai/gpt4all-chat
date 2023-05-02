@@ -43,7 +43,7 @@ cdef extern from "llmodel_c.h":
                     llmodel_response_callback response_callback,
                     llmodel_recalculate_callback recalculate_callback,
                     llmodel_prompt_context *ctx)
-"""
+
 cdef class GPTJModel:
     cdef llmodel_model model
     
@@ -53,9 +53,6 @@ cdef class GPTJModel:
     def __dealloc__(self):
         llmodel_gptj_destroy(self.model)
 
-    cdef llmodel_model get_model(self):
-        return self.model
-"""
 
 def create_and_destroy_gptj_model():
     gpjt_model = llmodel_gptj_create()
@@ -67,16 +64,18 @@ cdef llmodel_model load_gptj_model(model_path: str):
     llmodel_loadModel(gptj_model, model_path_bytestring)
     return gptj_model
 
-cdef bool empty_prompt_callback(int32_t token_id):
+cdef bool empty_prompt_callback(int32_t token_id, const char* response):
     return True
 
 cdef bool empty_response_callback(int32_t token_id, const char* response):
-    if response == b"###":
-        return False
+    print(response)
     return True
 
 cdef bool empty_recalculate_callback(bool is_recalculating):
     return is_recalculating
+
+cdef prompt_gptj(llmodel_model model, prompt):
+    pass
 
 cdef void load_and_prompt_gptj(model_path: str):
     gptj_model = load_gptj_model(model_path)
@@ -96,9 +95,12 @@ cdef void load_and_prompt_gptj(model_path: str):
     prompt_context.repeat_last_n = 10
     prompt_context.context_erase = 0.5
 
-    prompt = "hello".encode('utf-8')
+    prompt = "### Instruction:\n The prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response."
+    prompt += "\n### Prompt: hello there"
+    prompt += "\n### Response:"
+    prompt = prompt.encode('utf-8')
     print("TIME TO PROMPT")
-    llmodel_prompt(gptj_model, prompt, empty_response_callback, empty_response_callback, empty_recalculate_callback, &prompt_context)
+    llmodel_prompt(gptj_model, prompt, empty_prompt_callback, empty_response_callback, empty_recalculate_callback, &prompt_context)
 
 def python_load_and_prompt_gpt(model_path: str):
     load_and_prompt_gptj(model_path)
