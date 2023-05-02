@@ -18,7 +18,8 @@ Window {
         id: theme
     }
 
-    property var chatModel: LLM.currentChat.chatModel
+    property var currentChat: LLM.chatListModel.currentChat
+    property var chatModel: currentChat.chatModel
 
     color: theme.textColor
 
@@ -94,13 +95,13 @@ Window {
         Item {
             anchors.centerIn: parent
             height: childrenRect.height
-            visible: LLM.isModelLoaded
+            visible: currentChat.isModelLoaded
 
             Label {
                 id: modelLabel
                 color: theme.textColor
                 padding: 20
-                font.pixelSize: 24
+                font.pixelSize: theme.fontSizeLarger
                 text: ""
                 background: Rectangle {
                     color: theme.backgroundDarkest
@@ -169,17 +170,17 @@ Window {
                 }
 
                 onActivated: {
-                    LLM.stopGenerating()
-                    LLM.modelName = comboBox.currentText
-                    LLM.currentChat.reset();
+                    currentChat.stopGenerating()
+                    currentChat.modelName = comboBox.currentText
+                    currentChat.reset();
                 }
             }
         }
 
         BusyIndicator {
             anchors.centerIn: parent
-            visible: !LLM.isModelLoaded
-            running: !LLM.isModelLoaded
+            visible: !currentChat.isModelLoaded
+            running: !currentChat.isModelLoaded
             Accessible.role: Accessible.Animation
             Accessible.name: qsTr("Busy indicator")
             Accessible.description: qsTr("Displayed when the model is loading")
@@ -409,7 +410,7 @@ Window {
             var string = item.name;
             var isResponse = item.name === qsTr("Response: ")
             if (item.currentResponse)
-                string += LLM.response
+                string += currentChat.response
             else
                 string += chatModel.get(i).value
             if (isResponse && item.stopped)
@@ -427,7 +428,7 @@ Window {
             var isResponse = item.name === qsTr("Response: ")
             str += "{\"content\": ";
             if (item.currentResponse)
-                str += JSON.stringify(LLM.response)
+                str += JSON.stringify(currentChat.response)
             else
                 str += JSON.stringify(item.value)
             str += ", \"role\": \"" + (isResponse ? "assistant" : "user") + "\"";
@@ -471,9 +472,7 @@ Window {
         }
 
         onClicked: {
-            LLM.stopGenerating()
-            LLM.resetContext()
-            LLM.currentChat.reset();
+            currentChat.reset();
         }
     }
 
@@ -516,135 +515,13 @@ Window {
         }
     }
 
-    Drawer {
+    ChatDrawer {
         id: drawer
         y: header.height
         width: 0.3 * window.width
         height: window.height - y
-        modal: false
-        opacity: 0.9
-
-        background: Rectangle {
-            height: parent.height
-            color: theme.backgroundDarkest
-        }
-
-        Item {
-            anchors.fill: parent
-            anchors.margins: 30
-
-            Accessible.role: Accessible.Pane
-            Accessible.name: qsTr("Drawer on the left of the application")
-            Accessible.description: qsTr("Drawer that is revealed by pressing the hamburger button")
-
-            Label {
-                id: conversationList
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                wrapMode: Text.WordWrap
-                text: qsTr("Chat lists of specific conversations coming soon! Check back often for new features :)")
-                color: theme.textColor
-
-                Accessible.role: Accessible.Paragraph
-                Accessible.name: qsTr("Coming soon")
-                Accessible.description: text
-            }
-
-            Label {
-                id: discordLink
-                textFormat: Text.RichText
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: conversationList.bottom
-                anchors.topMargin: 20
-                wrapMode: Text.WordWrap
-                text: qsTr("Check out our discord channel <a href=\"https://discord.gg/4M2QFmTt2k\">https://discord.gg/4M2QFmTt2k</a>")
-                onLinkActivated: { Qt.openUrlExternally("https://discord.gg/4M2QFmTt2k") }
-                color: theme.textColor
-                linkColor: theme.linkColor
-
-                Accessible.role: Accessible.Link
-                Accessible.name: qsTr("Discord link")
-            }
-
-            Label {
-                id: nomicProps
-                textFormat: Text.RichText
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: discordLink.bottom
-                anchors.topMargin: 20
-                wrapMode: Text.WordWrap
-                text: qsTr("Thanks to <a href=\"https://home.nomic.ai\">Nomic AI</a> and the community for contributing so much great data and energy!")
-                onLinkActivated: { Qt.openUrlExternally("https://home.nomic.ai") }
-                color: theme.textColor
-                linkColor: theme.linkColor
-
-                Accessible.role: Accessible.Paragraph
-                Accessible.name: qsTr("Thank you blurb")
-                Accessible.description: qsTr("Contains embedded link to https://home.nomic.ai")
-            }
-
-            Button {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: downloadButton.top
-                anchors.bottomMargin: 20
-                padding: 15
-                contentItem: Text {
-                    text: qsTr("Check for updates...")
-                    horizontalAlignment: Text.AlignHCenter
-                    color: theme.textColor
-
-                    Accessible.role: Accessible.Button
-                    Accessible.name: text
-                    Accessible.description: qsTr("Use this to launch an external application that will check for updates to the installer")
-                }
-
-                background: Rectangle {
-                    opacity: .5
-                    border.color: theme.backgroundLightest
-                    border.width: 1
-                    radius: 10
-                    color: theme.backgroundLight
-                }
-
-                onClicked: {
-                    if (!LLM.checkForUpdates())
-                        checkForUpdatesError.open()
-                }
-            }
-
-            Button {
-                id: downloadButton
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                padding: 15
-                contentItem: Text {
-                    text: qsTr("Download new models...")
-                    horizontalAlignment: Text.AlignHCenter
-                    color: theme.textColor
-
-                    Accessible.role: Accessible.Button
-                    Accessible.name: text
-                    Accessible.description: qsTr("Use this to launch a dialog to download new models")
-                }
-
-                background: Rectangle {
-                    opacity: .5
-                    border.color: theme.backgroundLightest
-                    border.width: 1
-                    radius: 10
-                    color: theme.backgroundLight
-                }
-
-                onClicked: {
-                    downloadNewModels.open()
-                }
-            }
-
+        onDownloadClicked: {
+            downloadNewModels.open()
         }
     }
 
@@ -679,14 +556,14 @@ Window {
                     Accessible.description: qsTr("This is the list of prompt/response pairs comprising the actual conversation with the model")
 
                     delegate: TextArea {
-                        text: currentResponse ? LLM.response : (value ? value : "")
+                        text: currentResponse ? currentChat.response : (value ? value : "")
                         width: listView.width
                         color: theme.textColor
                         wrapMode: Text.WordWrap
                         focus: false
                         readOnly: true
                         font.pixelSize: theme.fontSizeLarge
-                        cursorVisible: currentResponse ? (LLM.response !== "" ? LLM.responseInProgress : false) : false
+                        cursorVisible: currentResponse ? (currentChat.response !== "" ? currentChat.responseInProgress : false) : false
                         cursorPosition: text.length
                         background: Rectangle {
                             color: name === qsTr("Response: ") ? theme.backgroundLighter : theme.backgroundLight
@@ -706,8 +583,8 @@ Window {
                             anchors.leftMargin: 90
                             anchors.top: parent.top
                             anchors.topMargin: 5
-                            visible: (currentResponse ? true : false) && LLM.response === "" && LLM.responseInProgress
-                            running: (currentResponse ? true : false) && LLM.response === "" && LLM.responseInProgress
+                            visible: (currentResponse ? true : false) && currentChat.response === "" && currentChat.responseInProgress
+                            running: (currentResponse ? true : false) && currentChat.response === "" && currentChat.responseInProgress
 
                             Accessible.role: Accessible.Animation
                             Accessible.name: qsTr("Busy indicator")
@@ -738,7 +615,7 @@ Window {
                                 window.height / 2 - height / 2)
                             x: globalPoint.x
                             y: globalPoint.y
-                            property string text: currentResponse ? LLM.response : (value ? value : "")
+                            property string text: currentResponse ? currentChat.response : (value ? value : "")
                             response: newResponse === undefined || newResponse === "" ? text : newResponse
                             onAccepted: {
                                 var responseHasChanged = response !== text && response !== newResponse
@@ -748,13 +625,13 @@ Window {
                                 chatModel.updateNewResponse(index, response)
                                 chatModel.updateThumbsUpState(index, false)
                                 chatModel.updateThumbsDownState(index, true)
-                                Network.sendConversation(LLM.currentChat.id, getConversationJson());
+                                Network.sendConversation(currentChat.id, getConversationJson());
                             }
                         }
 
                         Column {
                             visible: name === qsTr("Response: ") &&
-                                (!currentResponse || !LLM.responseInProgress) && Network.isActive
+                                (!currentResponse || !currentChat.responseInProgress) && Network.isActive
                             anchors.right: parent.right
                             anchors.rightMargin: 20
                             anchors.top: parent.top
@@ -780,7 +657,7 @@ Window {
                                         chatModel.updateNewResponse(index, "")
                                         chatModel.updateThumbsUpState(index, true)
                                         chatModel.updateThumbsDownState(index, false)
-                                        Network.sendConversation(LLM.currentChat.id, getConversationJson());
+                                        Network.sendConversation(currentChat.id, getConversationJson());
                                     }
                                 }
 
@@ -853,27 +730,27 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 15
-                source: LLM.responseInProgress ? "qrc:/gpt4all/icons/stop_generating.svg" : "qrc:/gpt4all/icons/regenerate.svg"
+                source: currentChat.responseInProgress ? "qrc:/gpt4all/icons/stop_generating.svg" : "qrc:/gpt4all/icons/regenerate.svg"
             }
             leftPadding: 50
             onClicked: {
                 var index = Math.max(0, chatModel.count - 1);
                 var listElement = chatModel.get(index);
 
-                if (LLM.responseInProgress) {
+                if (currentChat.responseInProgress) {
                     listElement.stopped = true
-                    LLM.stopGenerating()
+                    currentChat.stopGenerating()
                 } else {
-                    LLM.regenerateResponse()
+                    currentChat.regenerateResponse()
                     if (chatModel.count) {
                         if (listElement.name === qsTr("Response: ")) {
                             chatModel.updateCurrentResponse(index, true);
                             chatModel.updateStopped(index, false);
-                            chatModel.updateValue(index, LLM.response);
+                            chatModel.updateValue(index, currentChat.response);
                             chatModel.updateThumbsUpState(index, false);
                             chatModel.updateThumbsDownState(index, false);
                             chatModel.updateNewResponse(index, "");
-                            LLM.prompt(listElement.prompt, settingsDialog.promptTemplate,
+                            currentChat.prompt(listElement.prompt, settingsDialog.promptTemplate,
                                        settingsDialog.maxLength,
                                        settingsDialog.topK, settingsDialog.topP,
                                        settingsDialog.temperature,
@@ -889,7 +766,7 @@ Window {
             anchors.bottomMargin: 40
             padding: 15
             contentItem: Text {
-                text: LLM.responseInProgress ? qsTr("Stop generating") : qsTr("Regenerate response")
+                text: currentChat.responseInProgress ? qsTr("Stop generating") : qsTr("Regenerate response")
                 color: theme.textColor
                 Accessible.role: Accessible.Button
                 Accessible.name: text
@@ -917,7 +794,7 @@ Window {
                 color: theme.textColor
                 padding: 20
                 rightPadding: 40
-                enabled: LLM.isModelLoaded
+                enabled: currentChat.isModelLoaded
                 wrapMode: Text.WordWrap
                 font.pixelSize: theme.fontSizeLarge
                 placeholderText: qsTr("Send a message...")
@@ -941,19 +818,16 @@ Window {
                     if (textInput.text === "")
                         return
 
-                    LLM.stopGenerating()
+                    currentChat.stopGenerating()
 
                     if (chatModel.count) {
                         var index = Math.max(0, chatModel.count - 1);
                         var listElement = chatModel.get(index);
                         chatModel.updateCurrentResponse(index, false);
-                        chatModel.updateValue(index, LLM.response);
+                        chatModel.updateValue(index, currentChat.response);
                     }
-                    var prompt = textInput.text + "\n"
-                    chatModel.appendPrompt(qsTr("Prompt: "), textInput.text);
-                    chatModel.appendResponse(qsTr("Response: "), prompt);
-                    LLM.resetResponse()
-                    LLM.prompt(prompt, settingsDialog.promptTemplate,
+                    currentChat.newPromptResponsePair(textInput.text);
+                    currentChat.prompt(textInput.text, settingsDialog.promptTemplate,
                                settingsDialog.maxLength,
                                settingsDialog.topK,
                                settingsDialog.topP,

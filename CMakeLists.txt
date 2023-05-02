@@ -58,7 +58,9 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 qt_add_executable(chat
     main.cpp
-    chat.h chat.cpp chatmodel.h
+    chat.h chat.cpp
+    chatllm.h chatllm.cpp
+    chatmodel.h chatlistmodel.h
     download.h download.cpp
     network.h network.cpp
     llm.h llm.cpp
@@ -69,6 +71,7 @@ qt_add_qml_module(chat
     VERSION 1.0
     QML_FILES
       main.qml
+      qml/ChatDrawer.qml
       qml/ModelDownloaderDialog.qml
       qml/NetworkDialog.qml
       qml/NewVersionDialog.qml
@@ -84,6 +87,7 @@ qt_add_qml_module(chat
       icons/copy.svg
       icons/settings.svg
       icons/edit.svg
+      icons/trash.svg
       icons/network.svg
       icons/thumbs_up.svg
       icons/thumbs_down.svg
