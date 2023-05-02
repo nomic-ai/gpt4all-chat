@@ -54,12 +54,35 @@ cdef extern from "llmodel_c.h":
                     llmodel_prompt_context *ctx)
 
 
-# Base/universal model class
 cdef class LLModel:
+    """
+    Base class and universal wrapper for GPT4All language models
+    built around llmodel C-API.
+
+    Attributes
+    ----------
+    model: llmodel_model
+        Ctype pointer to underlying model
+    model_type : str
+        Model architecture identifier
+    """
+
     cdef llmodel_model model
     model_type: str
 
     def load_model(self, model_path: str) -> bool:
+        """
+        Load model from a file.
+
+        Parameters
+        ----------
+        model_path : str
+            Model filepath
+
+        Returns
+        -------
+        True if model loaded successfully, False otherwise
+        """
         llmodel_loadModel(self.model, model_path.encode('utf-8'))
     
         if llmodel_isModelLoaded(self.model):
@@ -82,7 +105,27 @@ cdef class LLModel:
                  n_batch: int = 8, 
                  repeat_penalty: float = 1.2, 
                  repeat_last_n: int = 10, 
-                 context_erase: float = .5) -> str:
+                 context_erase: float = .5,
+                 verbose: bool = True) -> str:
+        """
+        Generate response from model from a prompt.
+
+        Parameters
+        ----------
+        prompt: str
+            Question, task, or conversation for model to respond to
+        add_default_header: bool, optional
+            Whether to add a prompt header (default is True)
+        add_default_footer: bool, optional
+            Whether to add a prompt footer (default is True)
+        # TODO: figure out what prompt context params are doing
+        verbose: bool, optional
+            Whether to print prompt and response
+
+        Returns
+        -------
+        Model response str
+        """
 
         full_prompt = ""
         if add_default_header:
@@ -95,9 +138,13 @@ cdef class LLModel:
 
         if add_default_footer:
             full_prompt += "\n### Response:"
+
+        if verbose:
+            print(full_prompt)
         
         full_prompt = full_prompt.encode('utf-8')
 
+        # Change stdout to StringIO so we can collect response
         old_stdout = sys.stdout 
         collect_response = StringIO()
         sys.stdout  = collect_response
@@ -117,6 +164,11 @@ cdef class LLModel:
                          context_erase)
         response = collect_response.getvalue()
         sys.stdout = old_stdout
+
+        if verbose:
+            print(response)
+        
+        # Remove the unnecessary new lines from response
         return re.sub(r"\n(?!\n)", "", response)
 
     cdef void _generate_c(self, 
@@ -133,6 +185,10 @@ cdef class LLModel:
                           float repeat_penalty, 
                           int32_t repeat_last_n, 
                           float context_erase):
+        """
+        C level defined function to wrap generate arguments
+        into a prompt context and pass C callback functions.
+        """
     
         cdef llmodel_prompt_context prompt_context
     
@@ -156,15 +212,18 @@ cdef class LLModel:
                        self._recalculate_callback, 
                        &prompt_context)
 
+    # Empty prompt callback
     @staticmethod
     cdef bool _prompt_callback(int32_t token_id, const char* response):
         return True
 
+    # Empty response callback method that just prints response to be collected
     @staticmethod
     cdef bool _response_callback(int32_t token_id, const char* response):
         print(response.decode('utf-8'))
         return True
 
+    # Empty recalculate callback
     @staticmethod
     cdef bool _recalculate_callback(bool is_recalculating):
         return is_recalculating
