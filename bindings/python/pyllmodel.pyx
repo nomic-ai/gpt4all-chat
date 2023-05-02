@@ -48,7 +48,7 @@ cdef extern from "llmodel_c.h":
                     llmodel_recalculate_callback recalculate_callback,
                     llmodel_prompt_context *ctx)
 
-# Abstract model class
+# Base model class
 cdef class LLModel:
     cdef llmodel_model model
     model_type: str
