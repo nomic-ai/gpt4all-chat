@@ -1,7 +1,7 @@
 from io import StringIO
 import sys
 
-import pyllmodel
+from python_gpt4all import pyllmodel
 
 # TODO: Integration test for loadmodel and prompt. 
 # # Right now, too slow b/c it requries file download.
