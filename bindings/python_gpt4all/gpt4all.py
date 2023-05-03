@@ -3,7 +3,7 @@ Python only API for running all GPT4All models.
 """
 import os
 
-from python_gpt4all import pyllmodel
+from . import pyllmodel
 
 
 class GPT4All():
