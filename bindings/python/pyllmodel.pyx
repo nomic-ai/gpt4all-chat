@@ -68,7 +68,7 @@ cdef class LLModel:
     """
 
     cdef llmodel_model model
-    model_type: str
+    model_type: str = None
 
     def load_model(self, model_path: str) -> bool:
         """
@@ -147,7 +147,7 @@ cdef class LLModel:
         # Change stdout to StringIO so we can collect response
         old_stdout = sys.stdout 
         collect_response = StringIO()
-        sys.stdout  = collect_response
+        sys.stdout = collect_response
         
         self._generate_c(full_prompt,
                          logits_size, 
@@ -165,11 +165,13 @@ cdef class LLModel:
         response = collect_response.getvalue()
         sys.stdout = old_stdout
 
+        response = re.sub(r"\n(?!\n)", "", response)
+
         if verbose:
             print(response)
         
         # Remove the unnecessary new lines from response
-        return re.sub(r"\n(?!\n)", "", response)
+        return response
 
     cdef void _generate_c(self, 
                           prompt, # utf-8 bytestring
@@ -231,8 +233,7 @@ cdef class LLModel:
 
 cdef class GPTJModel(LLModel):
 
-    def __init__(self):
-        self.model_type = "gptj"
+    model_type = "gptj"
 
     def __cinit__(self):
         self.model = llmodel_gptj_create()
@@ -243,8 +244,7 @@ cdef class GPTJModel(LLModel):
 
 cdef class LlamaModel(LLModel):
 
-    def __init__(self):
-        self.model_type = "llama"
+    model_type = "llama"
 
     def __cinit__(self):
         self.model = llmodel_llama_create()
