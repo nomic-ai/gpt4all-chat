@@ -20,5 +20,8 @@ setup(
     author="Richard Guo",
     author_email="richard@nomic.ai",
     packages=find_packages(),
+    install_requires=[
+        "Cython==0.29.34",
+        "pytest==7.3.1"],
     ext_modules=ext_modules
 )
