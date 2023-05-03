@@ -4,7 +4,7 @@ from Cython.Build import cythonize
 
 llmodel_extension = Extension(
     name="gpt4all.pyllmodel",
-    sources=["pyllmodel.pyx"],
+    sources=["gpt4all/pyllmodel.pyx"],
     libraries=["llmodel"],
     library_dirs=["../../llmodel/build/"],
     include_dirs=["../../llmodel"],

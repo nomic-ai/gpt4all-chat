@@ -1,6 +1,6 @@
 import pytest
 
-from python_gpt4all.gpt4all import GPT4All
+from gpt4all.gpt4all import GPT4All
 
 def test_invalid_model_type():
     model_type = "bad_type"

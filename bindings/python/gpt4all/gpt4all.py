@@ -35,9 +35,9 @@ class GPT4All():
         # TODO: Might be worth converting model_type to enum
 
         if model_type == "gptj":
-            return pyllmodel.GPTJModel
+            return pyllmodel.GPTJModel()
         elif model_type == "llama":
-            return pyllmodel.LlamaModel
+            return pyllmodel.LlamaModel()
         else:
             raise ValueError(f"No corresponding model for model_type: {model_type}")
         
@@ -60,9 +60,9 @@ class GPT4All():
         ]
 
         if model_filename in GPTJ_MODELS:
-            return pyllmodel.GPTJModel
+            return pyllmodel.GPTJModel()
         elif model_filename in LLAMA_MODELS:
-            return pyllmodel.LlamaModel
+            return pyllmodel.LlamaModel()
         else:
             err_msg = f"""No corresponding model for provided filename {model_filename}.
             If this is a custom model, make sure to specify a valid model_type.
