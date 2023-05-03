@@ -1,31 +1,49 @@
 """
 Python only API for running all GPT4All models.
 """
+import os
 
 import pyllmodel
 
 
 class GPT4All():
 
-    def __init__(self, model_path: str = None, model_type: str = None):
-        pass
+    def __init__(self, model_path: str, model_type: str = None):
+        self.model = None
+
+        # Model type provided for when model is custom
+        if model_type:
+            self.model = GPT4All.get_model_from_type(model_type)
+        # Else get model from gpt4all model filenames
+        else:
+            model_filename = os.path.basename(model_path)
+            self.model = GPT4All.get_model_from_filename(model_filename)
+
+        self.model.load_model(model_path)
+
+    def generate(self, prompt: str, verbose: bool = True):
+        """
+        High level method for running generate on gpt4all models.
+        NOTE: Right now, this is essentially duplicate code but will be useful
+        if underlying models' prompt or generate begin to differ.
+        """
+        return self.model.generate(prompt, verbose=verbose)
 
     @staticmethod
-    def get_model_from_type(model_type: str = None) -> pyllmodel.LLModel:
+    def get_model_from_type(model_type: str) -> pyllmodel.LLModel:
         # This needs to be updated for each new model
         # TODO: Might be worth converting model_type to enum
 
-        if model_type == None:
-            return GPT4All.default_model_type()
-        elif model_type == "gptj":
+        if model_type == "gptj":
             return pyllmodel.GPTJModel
         elif model_type == "llama":
             return pyllmodel.LlamaModel
         else:
-            raise ValueError(f"No corresponding model for model_type:   {model_type}")
+            raise ValueError(f"No corresponding model for model_type: {model_type}")
         
     @staticmethod
     def get_model_from_filename(model_filename: str) -> pyllmodel.LLModel:
+        # This needs to be updated for each new model
         GPTJ_MODELS = [
             "ggml-gpt4all-j-v1.3-groovy.bin",
             "ggml-gpt4all-l13b-snoozy.bin",
@@ -50,7 +68,3 @@ class GPT4All():
             If this is a custom model, make sure to specify a valid model_type.
             """
             raise ValueError(err_msg)
-
-    @staticmethod
-    def default_model_type():
-        return pyllmodel.GPTJModel
