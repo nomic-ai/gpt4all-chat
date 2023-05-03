@@ -16,6 +16,7 @@ llmodel_extension = Extension(
     include_dirs=["../../llmodel"],
     extra_link_args=['-Wl,-rpath,../../llmodel/build'],
 )
+
 setup(
     name="python_gpt4all",
     version="1.0",
