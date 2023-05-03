@@ -22,7 +22,7 @@ Confirm that `libllmodel.dylib` exists in `gpt4all-chat/llmodel/build`.
 2. Setup Python package
 
 ```
-cd ../../bindings/python_gpt4all
+cd ../../bindings/python
 pip3 install --upgrade pip setuptools
 pip3 install -r requirements.txt
 python3 setup.py install
