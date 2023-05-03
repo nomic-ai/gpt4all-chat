@@ -1,6 +1,6 @@
 from libcpp cimport bool
-
 from io import StringIO
+
 import re
 import sys
 
