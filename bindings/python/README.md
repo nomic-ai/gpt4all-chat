@@ -25,15 +25,17 @@ Confirm that `libllmodel.dylib` exists in `gpt4all-chat/llmodel/build`.
 cd ../../bindings/python
 pip3 install --upgrade pip setuptools
 pip3 install -r requirements.txt
-python3 setup.py install
+pip3 install -e .
 ```
 
 3. Test it out! In a Python script or console:
 
 ```python
 
-import 
+from gpt4all import GPT4All
 
+model = GPT4All(model_path="path/to/model")
+model.generate("hello there")
 
 ```
 
