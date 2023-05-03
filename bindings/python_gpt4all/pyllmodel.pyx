@@ -251,14 +251,3 @@ cdef class LlamaModel(LLModel):
 
     def __dealloc__(self):
         llmodel_llama_destroy(self.model)
-
-
-def test():
-    gptj_model = GPTJModel()
-    gptj_model.load_model("models_temp/ggml-gpt4all-j-v1.3-groovy.bin")  
-    response = gptj_model.generate("Hello there")
-    print(response)    
-    response = gptj_model.generate("Can you list 5 different colors?")
-    print(response)
-    
-    return
