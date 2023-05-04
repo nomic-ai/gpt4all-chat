@@ -3,7 +3,7 @@
 This package contains a set of Python bindings that runs the `llmodel` C-API.
 
 
-# Installation Instructions
+# Local Installation Instructions
 
 TODO: Right now instructions in main README still depend on Qt6 setup. To setup Python bindings, we just need `llmodel` to be built which is much simpler. However, in the future, the below installation instructions should be sequentially organized such that we expect the main README's instructions were followed first.
 
