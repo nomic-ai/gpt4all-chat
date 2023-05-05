@@ -1,4 +1,3 @@
-Cython==0.29.34
 exceptiongroup==1.1.1
 iniconfig==2.0.0
 packaging==23.1

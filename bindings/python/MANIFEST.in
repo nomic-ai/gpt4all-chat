@@ -1,0 +1,3 @@
+recursive-include gpt4all/llmodel_DO_NOT_MODIFY/ *
+global-include *.pyx
+global-include *.pxd

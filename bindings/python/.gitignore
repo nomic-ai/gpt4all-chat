@@ -161,3 +161,4 @@ cython_debug/
 
 # Cython
 /*.c
+*DO_NOT_MODIFY/
