@@ -13,7 +13,8 @@ LIB_NAME = "llmodel"
 
 DEST_CLIB_DIRECTORY = f"{package_name}/{LIB_NAME}_DO_NOT_MODIFY"
 DEST_CLIB_BUILD_DIRECTORY = os.path.join(DEST_CLIB_DIRECTORY, "build")
-
+print(DEST_CLIB_DIRECTORY)
+print(DEST_CLIB_BUILD_DIRECTORY)
 
 system = platform.system()
 
@@ -32,36 +33,26 @@ def get_c_shared_lib_extension():
 lib_ext = get_c_shared_lib_extension()
 
 
-def copy_prebuilt_C_lib(src_dir, src_build_dir, dest_dir, dest_build_dir):
+def copy_prebuilt_C_lib(src_dir, dest_dir, dest_build_dir):
     files_copied = 0
 
     if not os.path.exists(dest_dir):
         os.mkdir(dest_dir)
-        for item in os.listdir(src_dir):
-            # copy over header files to dest dir
-            if item.endswith(".h"):
-                s = os.path.join(src_dir, item)
-                d = os.path.join(dest_dir, item)
-                shutil.copy2(s, d)
-                files_copied += 1
-    
-
-    if not os.path.exists(dest_build_dir):
         os.mkdir(dest_build_dir)
-        for item in os.listdir(src_build_dir):
-            # copy over shared library to dest build dir
-            if item.endswith(lib_ext):
-                s = os.path.join(src_build_dir, item)
 
-                # Need to copy .dll right next to Cython extension for Windows
-                if system == "Windows":
-                    d = os.path.join(".", item)
+        for dirpath, _, filenames in os.walk(src_dir):
+            for item in filenames:
+                # copy over header files to dest dir
+                s = os.path.join(dirpath, item)
+                if item.endswith(".h"):
+                    d = os.path.join(dest_dir, item)
                     shutil.copy2(s, d)
-                else:
+                    files_copied += 1
+                if item.endswith(lib_ext):
+                    s = os.path.join(dirpath, item)
                     d = os.path.join(dest_build_dir, item)
-                
-                shutil.copy2(s, d)
-                files_copied += 1
+                    shutil.copy2(s, d)
+                    files_copied += 1
     
     return files_copied
 
@@ -69,7 +60,6 @@ def copy_prebuilt_C_lib(src_dir, src_build_dir, dest_dir, dest_build_dir):
 # NOTE: You must provide correct path to the prebuilt llmodel C library. 
 # Specifically, the llmodel.h and C shared library are needed.
 copy_prebuilt_C_lib(SRC_CLIB_DIRECtORY,
-                    SRC_CLIB_BUILD_DIRECTORY,
                     DEST_CLIB_DIRECTORY,
                     DEST_CLIB_BUILD_DIRECTORY)
 

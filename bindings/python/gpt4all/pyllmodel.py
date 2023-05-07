@@ -1,5 +1,5 @@
 from io import StringIO
-
+import pkg_resources
 import ctypes
 import os
 import platform
@@ -7,8 +7,7 @@ import re
 import sys
 
 # TODO: provide a config file to make this more robust
-
-LIB_PATH = "llmodel_DO_NOT_MODIFY/build/"
+LLMODEL_PATH = "llmodel_DO_NOT_MODIFY/build/"
 
 def load_llmodel_library():
     system = platform.system()
@@ -22,12 +21,22 @@ def load_llmodel_library():
             return "dll"
         else:
             raise Exception("Operating System not supported")
+        
+    c_lib_ext = get_c_shared_lib_extension()
+    
+    llmodel_file = "libllmodel" + '.' + c_lib_ext
+    llama_file = "libllama" + '.' + c_lib_ext
+    llama_dir = str(pkg_resources.resource_filename('gpt4all', LLMODEL_PATH + llama_file))
+    llmodel_dir = str(pkg_resources.resource_filename('gpt4all', LLMODEL_PATH + llmodel_file))
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    lib_file = "libllmodel" + '.' + get_c_shared_lib_extension()
-    return ctypes.CDLL(os.path.join(script_dir, LIB_PATH, lib_file))
+    llama_lib = ctypes.CDLL(llama_dir, mode=ctypes.RTLD_GLOBAL)
 
-llmodel = load_llmodel_library()
+    llmodel_lib = ctypes.CDLL(llmodel_dir)
+
+    return llmodel_lib, llama_lib
+
+
+llmodel, llama = load_llmodel_library()
 
 # Define C function signatures using ctypes
 llmodel.llmodel_gptj_create.restype = ctypes.c_void_p
@@ -56,11 +65,8 @@ class LLModelPromptContext(ctypes.Structure):
                 ("repeat_last_n", ctypes.c_int32),
                 ("context_erase", ctypes.c_float)]
     
-
-# PromptCallback = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_int32)
 ResponseCallback = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_int32, ctypes.c_char_p)
 RecalculateCallback = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_bool)
-
 
 llmodel.llmodel_prompt.argtypes = [ctypes.c_void_p, 
                                    ctypes.c_char_p, 
@@ -139,7 +145,6 @@ class LLModel:
             Whether to add a prompt header (default is True)
         add_default_footer: bool, optional
             Whether to add a prompt footer (default is True)
-        # TODO: figure out what prompt context params are doing
         verbose: bool, optional
             Whether to print prompt and response
 
