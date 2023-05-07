@@ -6,14 +6,13 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import download
 import llm
+import network
 
 Dialog {
     id: modelDownloaderDialog
-    width: 1024
-    height: 600
     modal: true
     opacity: 0.9
-    closePolicy: LLM.modelList.length === 0 ? Popup.NoAutoClose : (Popup.CloseOnEscape | Popup.CloseOnPressOutside)
+    closePolicy: LLM.chatListModel.currentChat.modelList.length === 0 ? Popup.NoAutoClose : (Popup.CloseOnEscape | Popup.CloseOnPressOutside)
     background: Rectangle {
         anchors.fill: parent
         anchors.margins: -20
@@ -21,6 +20,10 @@ Dialog {
         border.width: 1
         border.color: theme.dialogBorder
         radius: 10
+    }
+
+    onOpened: {
+        Network.sendModelDownloaderDialog();
     }
 
     property string defaultModelPath: Download.defaultLocalModelsPath()

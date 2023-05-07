@@ -13,7 +13,7 @@ if(APPLE)
 endif()
 
 set(APP_VERSION_MAJOR 2)
-set(APP_VERSION_MINOR 3)
+set(APP_VERSION_MINOR 4)
 set(APP_VERSION_PATCH 1)
 set(APP_VERSION "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}")
 
@@ -60,10 +60,11 @@ qt_add_executable(chat
     main.cpp
     chat.h chat.cpp
     chatllm.h chatllm.cpp
-    chatmodel.h chatlistmodel.h
+    chatmodel.h chatlistmodel.h chatlistmodel.cpp
     download.h download.cpp
     network.h network.cpp
     llm.h llm.cpp
+    sysinfo.h
 )
 
 qt_add_qml_module(chat
@@ -79,6 +80,7 @@ qt_add_qml_module(chat
       qml/SettingsDialog.qml
       qml/StartupDialog.qml
       qml/PopupDialog.qml
+      qml/AboutDialog.qml
       qml/Theme.qml
     RESOURCES
       icons/send_message.svg

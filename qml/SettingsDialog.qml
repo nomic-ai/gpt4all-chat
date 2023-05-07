@@ -11,8 +11,6 @@ import llm
 Dialog {
     id: settingsDialog
     modal: true
-    width: 1024
-    height: 600
     opacity: 0.9
     background: Rectangle {
         anchors.fill: parent
@@ -21,6 +19,10 @@ Dialog {
         border.width: 1
         border.color: theme.dialogBorder
         radius: 10
+    }
+
+    onOpened: {
+        Network.sendSettingsDialog();
     }
 
     Theme {
@@ -35,11 +37,10 @@ Dialog {
     property real defaultRepeatPenalty: 1.10
     property int defaultRepeatPenaltyTokens: 64
     property int defaultThreadCount: 0
-    property string defaultPromptTemplate: "### Instruction:
-The prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response.
-### Prompt:
+    property bool defaultSaveChats: false
+    property string defaultPromptTemplate: "### Human:
 %1
-### Response:\n"
+### Assistant:\n"
     property string defaultModelPath: Download.defaultLocalModelsPath()
 
     property alias temperature: settings.temperature
@@ -51,6 +52,7 @@ The prompt below is a question to answer, a task to complete, or a conversation 
     property alias repeatPenalty: settings.repeatPenalty
     property alias repeatPenaltyTokens: settings.repeatPenaltyTokens
     property alias threadCount: settings.threadCount
+    property alias saveChats: settings.saveChats
     property alias modelPath: settings.modelPath
 
     Settings {
@@ -61,6 +63,7 @@ The prompt below is a question to answer, a task to complete, or a conversation 
         property int maxLength: settingsDialog.defaultMaxLength
         property int promptBatchSize: settingsDialog.defaultPromptBatchSize
         property int threadCount: settingsDialog.defaultThreadCount
+        property bool saveChats: settingsDialog.defaultSaveChats
         property real repeatPenalty: settingsDialog.defaultRepeatPenalty
         property int repeatPenaltyTokens: settingsDialog.defaultRepeatPenaltyTokens
         property string promptTemplate: settingsDialog.defaultPromptTemplate
@@ -80,13 +83,16 @@ The prompt below is a question to answer, a task to complete, or a conversation 
     function restoreApplicationDefaults() {
         settings.modelPath = settingsDialog.defaultModelPath
         settings.threadCount = defaultThreadCount
+        settings.saveChats = defaultSaveChats
         Download.downloadLocalModelsPath = settings.modelPath
         LLM.threadCount = settings.threadCount
+        LLM.chatListModel.shouldSaveChats = settings.saveChats
         settings.sync()
     }
 
     Component.onCompleted: {
         LLM.threadCount = settings.threadCount
+        LLM.chatListModel.shouldSaveChats = settings.saveChats
         Download.downloadLocalModelsPath = settings.modelPath
     }
 
@@ -630,8 +636,61 @@ The prompt below is a question to answer, a task to complete, or a conversation 
                         Accessible.name: nThreadsLabel.text
                         Accessible.description: ToolTip.text
                     }
-                    Button {
+                    Label {
+                        id: saveChatsLabel
+                        text: qsTr("Save chats to disk:")
+                        color: theme.textColor
                         Layout.row: 3
+                        Layout.column: 0
+                    }
+                    CheckBox {
+                        id: saveChatsBox
+                        Layout.row: 3
+                        Layout.column: 1
+                        checked: settingsDialog.saveChats
+                        onClicked: {
+                            Network.sendSaveChatsToggled(saveChatsBox.checked);
+                            settingsDialog.saveChats = saveChatsBox.checked
+                            LLM.chatListModel.shouldSaveChats = saveChatsBox.checked
+                            settings.sync()
+                        }
+
+                        ToolTip.text: qsTr("WARNING: Saving chats to disk can be ~2GB per chat")
+                        ToolTip.visible: hovered
+
+                        background: Rectangle {
+                            color: "transparent"
+                        }
+
+                        indicator: Rectangle {
+                            implicitWidth: 26
+                            implicitHeight: 26
+                            x: saveChatsBox.leftPadding
+                            y: parent.height / 2 - height / 2
+                            border.color: theme.dialogBorder
+                            color: "transparent"
+
+                            Rectangle {
+                                width: 14
+                                height: 14
+                                x: 6
+                                y: 6
+                                color: theme.textColor
+                                visible: saveChatsBox.checked
+                            }
+                        }
+
+                        contentItem: Text {
+                            text: saveChatsBox.text
+                            font: saveChatsBox.font
+                            opacity: enabled ? 1.0 : 0.3
+                            color: theme.textColor
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: saveChatsBox.indicator.width + saveChatsBox.spacing
+                        }
+                    }
+                    Button {
+                        Layout.row: 4
                         Layout.column: 1
                         Layout.fillWidth: true
                         padding: 15

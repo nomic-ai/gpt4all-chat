@@ -1,15 +1,28 @@
 #include "network.h"
 #include "llm.h"
+#include "sysinfo.h"
 
 #include <QCoreApplication>
+#include <QGuiApplication>
 #include <QUuid>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QSettings>
 #include <QNetworkRequest>
+#include <QScreen>
 
 //#define DEBUG
+
+#if defined(Q_OS_MAC)
+#include <sys/sysctl.h>
+std::string getCPUModel() {
+    char buffer[256];
+    size_t bufferlen = sizeof(buffer);
+    sysctlbyname("machdep.cpu.brand_string", &buffer, &bufferlen, NULL, 0);
+    return std::string(buffer);
+}
+#endif
 
 class MyNetwork: public Network { };
 Q_GLOBAL_STATIC(MyNetwork, networkInstance)
@@ -192,11 +205,15 @@ void Network::sendModelLoaded()
     sendMixpanelEvent("model_load");
 }
 
-void Network::sendResetContext()
+void Network::sendResetContext(int conversationLength)
 {
     if (!m_usageStatsActive)
         return;
-    sendMixpanelEvent("reset_context");
+
+    KeyValue kv;
+    kv.key = QString("length");
+    kv.value = QJsonValue(conversationLength);
+    sendMixpanelEvent("reset_context", QVector<KeyValue>{kv});
 }
 
 void Network::sendStartup()
@@ -216,7 +233,132 @@ void Network::sendCheckForUpdates()
     sendMixpanelEvent("check_for_updates");
 }
 
-void Network::sendMixpanelEvent(const QString &ev)
+void Network::sendModelDownloaderDialog()
+{
+    if (!m_usageStatsActive)
+        return;
+    sendMixpanelEvent("download_dialog");
+}
+
+void Network::sendDownloadStarted(const QString &model)
+{
+    if (!m_usageStatsActive)
+        return;
+    KeyValue kv;
+    kv.key = QString("model");
+    kv.value = QJsonValue(model);
+    sendMixpanelEvent("download_started", QVector<KeyValue>{kv});
+}
+
+void Network::sendDownloadCanceled(const QString &model)
+{
+    if (!m_usageStatsActive)
+        return;
+    KeyValue kv;
+    kv.key = QString("model");
+    kv.value = QJsonValue(model);
+    sendMixpanelEvent("download_canceled", QVector<KeyValue>{kv});
+}
+
+void Network::sendDownloadError(const QString &model, int code, const QString &errorString)
+{
+    if (!m_usageStatsActive)
+        return;
+    KeyValue kv;
+    kv.key = QString("model");
+    kv.value = QJsonValue(model);
+    KeyValue kvCode;
+    kvCode.key = QString("code");
+    kvCode.value = QJsonValue(code);
+    KeyValue kvError;
+    kvError.key = QString("error");
+    kvError.value = QJsonValue(errorString);
+    sendMixpanelEvent("download_error", QVector<KeyValue>{kv, kvCode, kvError});
+}
+
+void Network::sendDownloadFinished(const QString &model, bool success)
+{
+    if (!m_usageStatsActive)
+        return;
+    KeyValue kv;
+    kv.key = QString("model");
+    kv.value = QJsonValue(model);
+    KeyValue kvSuccess;
+    kvSuccess.key = QString("success");
+    kvSuccess.value = QJsonValue(success);
+    sendMixpanelEvent("download_finished", QVector<KeyValue>{kv, kvSuccess});
+}
+
+void Network::sendSettingsDialog()
+{
+    if (!m_usageStatsActive)
+        return;
+    sendMixpanelEvent("settings_dialog");
+}
+
+void Network::sendNetworkToggled(bool isActive)
+{
+    if (!m_usageStatsActive)
+        return;
+    KeyValue kv;
+    kv.key = QString("isActive");
+    kv.value = QJsonValue(isActive);
+    sendMixpanelEvent("network_toggled", QVector<KeyValue>{kv});
+}
+
+void Network::sendSaveChatsToggled(bool isActive)
+{
+    if (!m_usageStatsActive)
+        return;
+    KeyValue kv;
+    kv.key = QString("isActive");
+    kv.value = QJsonValue(isActive);
+    sendMixpanelEvent("savechats_toggled", QVector<KeyValue>{kv});
+}
+
+void Network::sendNewChat(int count)
+{
+    if (!m_usageStatsActive)
+        return;
+    KeyValue kv;
+    kv.key = QString("number_of_chats");
+    kv.value = QJsonValue(count);
+    sendMixpanelEvent("new_chat", QVector<KeyValue>{kv});
+}
+
+void Network::sendRemoveChat()
+{
+    if (!m_usageStatsActive)
+        return;
+    sendMixpanelEvent("remove_chat");
+}
+
+void Network::sendRenameChat()
+{
+    if (!m_usageStatsActive)
+        return;
+    sendMixpanelEvent("rename_chat");
+}
+
+void Network::sendChatStarted()
+{
+    if (!m_usageStatsActive)
+        return;
+    sendMixpanelEvent("chat_started");
+}
+
+void Network::sendRecalculatingContext(int conversationLength)
+{
+    if (!m_usageStatsActive)
+        return;
+
+    KeyValue kv;
+    kv.key = QString("length");
+    kv.value = QJsonValue(conversationLength);
+    sendMixpanelEvent("recalc_context", QVector<KeyValue>{kv});
+}
+
+void Network::sendMixpanelEvent(const QString &ev, const QVector<KeyValue> &values)
 {
     if (!m_usageStatsActive)
         return;
@@ -233,6 +375,24 @@ void Network::sendMixpanelEvent(const QString &ev)
     properties.insert("name", QCoreApplication::applicationName() + " v"
         + QCoreApplication::applicationVersion());
     properties.insert("model", LLM::globalInstance()->chatListModel()->currentChat()->modelName());
+
+    // Some additional startup information
+    if (ev == "startup") {
+        const QSize display = QGuiApplication::primaryScreen()->size();
+        properties.insert("display", QString("%1x%2").arg(display.width()).arg(display.height()));
+        properties.insert("ram", getSystemTotalRAM());
+#if defined(__x86_64__) || defined(__i386__)
+        properties.insert("avx", bool(__builtin_cpu_supports("avx")));
+        properties.insert("avx2", bool(__builtin_cpu_supports("avx2")));
+        properties.insert("fma", bool(__builtin_cpu_supports("fma")));
+#endif
+#if defined(Q_OS_MAC)
+        properties.insert("cpu", QString::fromStdString(getCPUModel()));
+#endif
+    }
+
+    for (auto p : values)
+        properties.insert(p.key, p.value);
 
     QJsonObject event;
     event.insert("event", ev);
@@ -308,7 +468,6 @@ void Network::handleIpifyFinished()
 
 void Network::handleMixpanelFinished()
 {
-    Q_ASSERT(m_usageStatsActive);
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
     if (!reply)
         return;

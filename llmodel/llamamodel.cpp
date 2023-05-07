@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <random>
 #include <thread>
+#include <unordered_set>
 
 struct LLamaPrivate {
     const std::string modelPath;
@@ -66,11 +67,27 @@ int32_t LLamaModel::threadCount() {
 
 LLamaModel::~LLamaModel()
 {
+    llama_free(d_ptr->ctx);
 }
 
 bool LLamaModel::isModelLoaded() const
 {
     return d_ptr->modelLoaded;
+}
+
+size_t LLamaModel::stateSize() const
+{
+    return llama_get_state_size(d_ptr->ctx);
+}
+
+size_t LLamaModel::saveState(uint8_t *dest) const
+{
+    return llama_copy_state_data(d_ptr->ctx, dest);
+}
+
+size_t LLamaModel::restoreState(const uint8_t *src)
+{
+    return llama_set_state_data(d_ptr->ctx, src);
 }
 
 void LLamaModel::prompt(const std::string &prompt,
@@ -144,6 +161,11 @@ void LLamaModel::prompt(const std::string &prompt,
         i = batch_end;
     }
 
+    std::string cachedResponse;
+    std::vector<llama_token> cachedTokens;
+    std::unordered_set<std::string> reversePrompts
+        = { "### Instruction", "### Prompt", "### Response", "### Human", "### Assistant" };
+
     // predict next tokens
     int32_t totalPredictions = 0;
     for (int i = 0; i < promptCtx.n_predict; i++) {
@@ -175,11 +197,40 @@ void LLamaModel::prompt(const std::string &prompt,
         if (id == llama_token_eos())
             return;
 
-        if (promptCtx.tokens.size() == promptCtx.n_ctx)
-            promptCtx.tokens.erase(promptCtx.tokens.begin());
-        promptCtx.tokens.push_back(id);
-        if (!responseCallback(id, llama_token_to_str(d_ptr->ctx, id)))
+        const std::string str = llama_token_to_str(d_ptr->ctx, id);
+
+        // Check if the provided str is part of our reverse prompts
+        bool foundPartialReversePrompt = false;
+        const std::string completed = cachedResponse + str;
+        if (reversePrompts.find(completed) != reversePrompts.end()) {
             return;
+        }
+
+        // Check if it partially matches our reverse prompts and if so, cache
+        for (auto s : reversePrompts) {
+            if (s.compare(0, completed.size(), completed) == 0) {
+                foundPartialReversePrompt = true;
+                cachedResponse = completed;
+                break;
+            }
+        }
+
+        // Regardless the token gets added to our cache
+        cachedTokens.push_back(id);
+
+        // Continue if we have found a partial match
+        if (foundPartialReversePrompt)
+            continue;
+
+        // Empty the cache
+        for (auto t : cachedTokens) {
+            if (promptCtx.tokens.size() == promptCtx.n_ctx)
+                promptCtx.tokens.erase(promptCtx.tokens.begin());
+            promptCtx.tokens.push_back(t);
+            if (!responseCallback(t, llama_token_to_str(d_ptr->ctx, t)))
+                return;
+        }
+        cachedTokens.clear();
     }
 }
 
