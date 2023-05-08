@@ -21,24 +21,18 @@ class GPT4All():
         """
         Constructor
 
-        Attributes
-        ----------
+        Attributes:
         model: c_void_p
             Pointer to C llmodel
 
-        Parameters
-        ----------
-        model_name: str
-            Name of GPT4All or custom model. Including ".bin" file extension is optional but encouraged.
-        model_path: str
-            Path to directory containing model file or, if file does not exist, where to download model.
+        Args:
+        model_name: Name of GPT4All or custom model. Including ".bin" file extension is optional but encouraged.
+        model_path: Path to directory containing model file or, if file does not exist, where to download model.
             Default is None, in which case models will be stored in `~/.cache/gpt4all/`.
-        model_type: str
-            Model architecture to use - currently, only options are 'llama' or 'gptj'. Only required if model
+        model_type: Model architecture to use - currently, only options are 'llama' or 'gptj'. Only required if model
             is custom. Note that these models still must be built from llama.cpp or GPTJ ggml architecture.
             Default is None.
-        allow_download: bool
-            Allow API to download models from gpt4all.io. Default is True. 
+        allow_download: Allow API to download models from gpt4all.io. Default is True. 
 
         """
         self.model = None
@@ -59,9 +53,8 @@ class GPT4All():
         """
         Fetch model list from https://gpt4all.io/models/models.json
 
-        Returns
-        -------
-        Model list in JSON format.
+        Returns:
+            Model list in JSON format.
         """
         response = requests.get("https://gpt4all.io/models/models.json")
         model_json = json.loads(response.content)
@@ -72,15 +65,14 @@ class GPT4All():
         """
         Find model file, and if it doesn't exist, download the model.
 
-        Parameters
-        ----------
-        model_name: str
-            Name of model.
-        model_path: str
-            Path to find model. Default is None in which case path is set to
+        Args:
+        model_name: Name of model.
+        model_path: Path to find model. Default is None in which case path is set to
             ~/.cache/gpt4all/.
-        allow_download: bool
-            Allow API to download model from gpt4all.io. Default is True.
+        allow_download: Allow API to download model from gpt4all.io. Default is True.
+
+        Returns:
+            Model file destination.
         """
         
         model_filename = model_name
@@ -155,35 +147,29 @@ class GPT4All():
     
     def chat_completion(self, 
                         messages: List[Dict], 
-                        default_prompt_header=True, 
-                        default_prompt_footer=True, 
-                        verbose=True) -> str:
+                        default_prompt_header: bool = True, 
+                        default_prompt_footer: bool = True, 
+                        verbose: bool = True) -> str:
         """
         Format list of message dictionaries into a prompt and call model
         generate on prompt. Returns a response dictionary with metadata and
         generated content.
 
-        Parameters
-        ----------
-        messages: List of Dict
-            Each dictionary should have a "role" key
+        Args:
+        messages: Each dictionary should have a "role" key
             with value of "system", "assistant", or "user" and a "content" key with a
             string value. Messages are organized such that "system" messages are at top of prompt,
             and "user" and "assistant" messages are displayed in order. Assistant messages get formatted as
             "Reponse: {content}". 
 
-        default_prompt_header: bool
-            If True (default), add default prompt header after any user specified system messages and
+        default_prompt_header: If True (default), add default prompt header after any user specified system messages and
             before user/assistant messages.
 
-        default_prompt_footer: bool
-            If True (default), add default footer at end of prompt.
+        default_prompt_footer: If True (default), add default footer at end of prompt.
 
-        verbose: bool
-            If True (default), print full prompt and generated response.
+        verbose: If True (default), print full prompt and generated response.
 
-        Returns
-        -------
+        Returns:
         Response dictionary with:
             "model": name of model.
             "usage": a dictionary with number of full prompt tokens, number of 
@@ -254,6 +240,7 @@ class GPT4All():
 
     @staticmethod
     def get_model_from_type(model_type: str) -> pyllmodel.LLModel:
+        """autodoc-skip-member"""
         # This needs to be updated for each new model
         # TODO: Might be worth converting model_type to enum
 
@@ -266,6 +253,7 @@ class GPT4All():
         
     @staticmethod
     def get_model_from_name(model_name: str) -> pyllmodel.LLModel:
+        """autodoc-skip-member"""
         # This needs to be updated for each new model
 
         # NOTE: We are doing this preprocessing a lot, maybe there's a better way to organize
