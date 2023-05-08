@@ -15,8 +15,32 @@ from . import pyllmodel
 DEFAULT_MODEL_DIRECTORY = os.path.join(str(Path.home()), ".cache", "gpt4all")
 
 class GPT4All():
+    """Python API for retrieving and interacting with GPT4All models"""
 
     def __init__(self, model_name: str, model_path: str = None, model_type: str = None, allow_download=True):
+        """
+        Constructor
+
+        Attributes
+        ----------
+        model: c_void_p
+            Pointer to C llmodel
+
+        Parameters
+        ----------
+        model_name: str
+            Name of GPT4All or custom model. Including ".bin" file extension is optional but encouraged.
+        model_path: str
+            Path to directory containing model file or, if file does not exist, where to download model.
+            Default is None, in which case models will be stored in `~/.cache/gpt4all/`.
+        model_type: str
+            Model architecture to use - currently, only options are 'llama' or 'gptj'. Only required if model
+            is custom. Note that these models still must be built from llama.cpp or GPTJ ggml architecture.
+            Default is None.
+        allow_download: bool
+            Allow API to download models from gpt4all.io. Default is True. 
+
+        """
         self.model = None
 
         # Model type provided for when model is custom
@@ -32,12 +56,32 @@ class GPT4All():
 
     @staticmethod
     def list_models():
+        """
+        Fetch model list from https://gpt4all.io/models/models.json
+
+        Returns
+        -------
+        Model list in JSON format.
+        """
         response = requests.get("https://gpt4all.io/models/models.json")
         model_json = json.loads(response.content)
         return model_json
 
     @staticmethod
-    def retrieve_model(model_name: str, model_path: str = None, allow_download=True):
+    def retrieve_model(model_name: str, model_path: str = None, allow_download = True):
+        """
+        Find model file, and if it doesn't exist, download the model.
+
+        Parameters
+        ----------
+        model_name: str
+            Name of model.
+        model_path: str
+            Path to find model. Default is None in which case path is set to
+            ~/.cache/gpt4all/.
+        allow_download: bool
+            Allow API to download model from gpt4all.io. Default is True.
+        """
         
         model_filename = model_name
         if ".bin" not in model_filename:
@@ -52,8 +96,6 @@ class GPT4All():
                 except:
                     raise ValueError("Failed to create model download directory at ~/.cache/gpt4all/. \
                     Please specify download_dir.")
-
-        download_path = None
 
         if os.path.exists(model_path):
             model_dest = os.path.join(model_path, model_filename)
@@ -143,6 +185,7 @@ class GPT4All():
         Returns
         -------
         Response dictionary with:
+            "model": name of model.
             "usage": a dictionary with number of full prompt tokens, number of 
                 generated tokens in response, and total tokens.
             "choices": List of message dictionary where "content" is generated response and "role" is set

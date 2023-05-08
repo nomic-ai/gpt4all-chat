@@ -42,6 +42,7 @@ markdown_extensions:
           - docs/overrides/.icons
   - tables
   - admonition
+  - mkautodoc
   - codehilite:
       css_class: highlight
 
