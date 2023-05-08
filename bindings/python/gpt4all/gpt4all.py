@@ -1,15 +1,18 @@
 """
 Python only API for running all GPT4All models.
 """
+import json
 import os
+from pathlib import Path
 from typing import Dict, List
 
 import requests
+from tqdm import tqdm
 
 from . import pyllmodel
 
 # TODO: move to config
-DEFAULT_MODEL_DIRECTORY = "~/.cache/gpt4all/"
+DEFAULT_MODEL_DIRECTORY = os.path.join(str(Path.home()), ".cache", "gpt4all")
 
 class GPT4All():
 
@@ -21,8 +24,7 @@ class GPT4All():
             self.model = GPT4All.get_model_from_type(model_type)
         # Else get model from gpt4all model filenames
         else:
-            model_filename = os.path.basename(model_path)
-            self.model = GPT4All.get_model_from_filename(model_filename)
+            self.model = GPT4All.get_model_from_name(model_name)
 
         # Retrieve model and download if allowed
         model_dest = self.retrieve_model(model_name, model_path=model_path, allow_download=allow_download)
@@ -44,11 +46,9 @@ class GPT4All():
         # Validate download directory
         if model_path == None:
             model_path = DEFAULT_MODEL_DIRECTORY
-            if os.path.exists(DEFAULT_MODEL_DIRECTORY):
-                continue
-            else:
+            if not os.path.exists(DEFAULT_MODEL_DIRECTORY):
                 try:
-                    os.mkdirs(DEFAULT_MODEL_DIRECTORY)
+                    os.makedirs(DEFAULT_MODEL_DIRECTORY)
                 except:
                     raise ValueError("Failed to create model download directory at ~/.cache/gpt4all/. \
                     Please specify download_dir.")
@@ -65,20 +65,20 @@ class GPT4All():
             elif allow_download: 
                 # Make sure valid model filename before attempting download
                 model_match = False
-                for item in self.list_models():
+                for item in GPT4All.list_models():
                     if model_filename == item["filename"]:
                         model_match = True
                         break
                 if not model_match:
                     raise ValueError(f"Model filename not in model list: {model_filename}")
-                return self.download_model(model_path, model_filename)
+                return GPT4All.download_model(model_filename, model_path)
             else:
                 raise ValueError("Failed to retrieve model")
         else:
             raise ValueError("Invalid model directory")
         
     @staticmethod
-    def download_model(model_path, model_filename):
+    def download_model(model_filename, model_path):
         def get_download_url(model_filename):
             return f"https://gpt4all.io/models/{model_filename}"
     
@@ -222,8 +222,13 @@ class GPT4All():
             raise ValueError(f"No corresponding model for model_type: {model_type}")
         
     @staticmethod
-    def get_model_from_filename(model_filename: str) -> pyllmodel.LLModel:
+    def get_model_from_name(model_name: str) -> pyllmodel.LLModel:
         # This needs to be updated for each new model
+
+        # NOTE: We are doing this preprocessing a lot, maybe there's a better way to organize
+        if ".bin" not in model_name:
+            model_name += ".bin"
+
         GPTJ_MODELS = [
             "ggml-gpt4all-j-v1.3-groovy.bin",
             "ggml-gpt4all-j-v1.2-jazzy.bin",
@@ -239,12 +244,12 @@ class GPT4All():
             "ggml-stable-vicuna-13B.q4_2.bin"
         ]
 
-        if model_filename in GPTJ_MODELS:
+        if model_name in GPTJ_MODELS:
             return pyllmodel.GPTJModel()
-        elif model_filename in LLAMA_MODELS:
+        elif model_name in LLAMA_MODELS:
             return pyllmodel.LlamaModel()
         else:
-            err_msg = f"""No corresponding model for provided filename {model_filename}.
+            err_msg = f"""No corresponding model for provided filename {model_name}.
             If this is a custom model, make sure to specify a valid model_type.
             """
             raise ValueError(err_msg)

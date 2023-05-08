@@ -1,1 +1,1 @@
-# GPT4All Python API
+# GPT4All API

@@ -73,7 +73,17 @@ setup(
     ],
     python_requires='>=3.8',
     packages=find_packages(),
-    install_requires=["pytest==7.3.1", "requests"],
+    install_requires=['requests', 'tqdm'],
+    extras_require={
+        'dev': [
+            'pytest',
+            'twine',
+            'mkdocs-material',
+            'mkautodoc',
+            'mkdocstrings[python]',
+            'mkdocs-jupyter'
+        ]
+    },
     package_data={'llmodel': [f"{DEST_CLIB_DIRECTORY}/*", f"*.dll"]},
     include_package_data=True
 )

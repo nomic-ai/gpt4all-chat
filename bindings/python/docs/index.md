@@ -1,1 +1,1 @@
-# GPT4All Python Bindings
+# GPT4All

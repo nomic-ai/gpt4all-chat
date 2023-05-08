@@ -186,7 +186,7 @@ class LLModel:
         sys.stdout = old_stdout
 
         # Remove the unnecessary new lines from response
-        response = re.sub(r"\n(?!\n)", "", response)
+        response = re.sub(r"\n(?!\n)", "", response).strip()
         
         return response
 

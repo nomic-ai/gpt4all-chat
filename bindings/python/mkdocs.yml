@@ -59,8 +59,8 @@ plugins:
             heading_level: 4
             show_root_full_path: false
             docstring_section_style: list
-  - material/social:
-      cards_font: Roboto
+  #- material/social:
+  #    cards_font: Roboto
 
   - mkdocs-jupyter:
       ignore_h1_titles: True
@@ -71,8 +71,8 @@ extra:
   analytics:
     provider: google
     property: G-NPXC8BYHJV
-  social:
-    - icon: fontawesome/brands/twitter
-      link: https://twitter.com/nomic_ai
-    - icon: material/fruit-pineapple
-      link: https://www.youtube.com/watch?v=628eVJgHD6I
+  #social:
+  #  - icon: fontawesome/brands/twitter
+  #    link: https://twitter.com/nomic_ai
+  #  - icon: material/fruit-pineapple
+  #    link: https://www.youtube.com/watch?v=628eVJgHD6I
