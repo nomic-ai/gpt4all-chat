@@ -6,7 +6,7 @@ venv:
 	if [ ! -d $(ROOT_DIR)/env ]; then $(PYTHON) -m venv $(ROOT_DIR)/env; fi
 
 documentation:
-	rm -rf /.site && mkdocs build
+	rm -rf ./site && mkdocs build
 
 wheel:
 	rm -rf dist/ build/ gpt4all/llmodel_DO_NOT_MODIFY; python setup.py bdist_wheel;

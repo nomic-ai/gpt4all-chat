@@ -42,7 +42,6 @@ markdown_extensions:
           - docs/overrides/.icons
   - tables
   - admonition
-  - mkautodoc
   - codehilite:
       css_class: highlight
 
@@ -61,9 +60,9 @@ plugins:
   #- material/social:
   #    cards_font: Roboto
 
-  - mkdocs-jupyter:
-      ignore_h1_titles: True
-      show_input: True
+  #- mkdocs-jupyter:
+  #    ignore_h1_titles: True
+  #    show_input: True
 
 extra:
   generator: false
