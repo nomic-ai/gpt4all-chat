@@ -93,6 +93,7 @@ class LLModel:
 
     def __init__(self):
         self.model = None
+        self.model_name = None
 
     def __del__(self):
         pass
@@ -111,6 +112,8 @@ class LLModel:
         True if model loaded successfully, False otherwise
         """
         llmodel.llmodel_loadModel(self.model, model_path.encode('utf-8'))
+        filename = os.path.basename(model_path)
+        self.model_name = os.path.splitext(filename)[0]
     
         if llmodel.llmodel_isModelLoaded(self.model):
             return True
@@ -119,8 +122,6 @@ class LLModel:
 
     def generate(self, 
                  prompt: str,
-                 add_default_header: bool = True, 
-                 add_default_footer: bool = True,
                  logits_size: int = 0, 
                  tokens_size: int = 0, 
                  n_past: int = 0, 
@@ -132,8 +133,7 @@ class LLModel:
                  n_batch: int = 8, 
                  repeat_penalty: float = 1.2, 
                  repeat_last_n: int = 10, 
-                 context_erase: float = .5,
-                 verbose: bool = True) -> str:
+                 context_erase: float = .5) -> str:
         """
         Generate response from model from a prompt.
 
@@ -152,24 +152,9 @@ class LLModel:
         -------
         Model response str
         """
-
-        full_prompt = ""
-        if add_default_header:
-            full_prompt += """### Instruction:\n 
-            The prompt below is a question to answer, a task to complete, or a conversation 
-            to respond to; decide which and write an appropriate response.
-            \n### Prompt: """
         
-        full_prompt += prompt
-
-        if add_default_footer:
-            full_prompt += "\n### Response:"
-
-        if verbose:
-            print(full_prompt)
-        
-        full_prompt = full_prompt.encode('utf-8')
-        full_prompt = ctypes.c_char_p(full_prompt)
+        prompt = prompt.encode('utf-8')
+        prompt = ctypes.c_char_p(prompt)
 
         # Change stdout to StringIO so we can collect response
         old_stdout = sys.stdout 
@@ -192,7 +177,7 @@ class LLModel:
         )
 
         llmodel.llmodel_prompt(self.model, 
-                               full_prompt, 
+                               prompt, 
                                ResponseCallback(self._prompt_callback), 
                                ResponseCallback(self._response_callback), 
                                RecalculateCallback(self._recalculate_callback), 
@@ -201,12 +186,9 @@ class LLModel:
         response = collect_response.getvalue()
         sys.stdout = old_stdout
 
-        response = re.sub(r"\n(?!\n)", "", response)
-
-        if verbose:
-            print(response)
-        
         # Remove the unnecessary new lines from response
+        response = re.sub(r"\n(?!\n)", "", response)
+        
         return response
 
     # Empty prompt callback
