@@ -11,8 +11,6 @@ nav:
     - 'index.md'
     - 'API Reference':
       - 'gpt4all_api.md'
-    - 'Tutorials':
-      - Loading and Using GPT4All Models in Python: loading_and_using_gpt4all_models.ipynb # TODO
 
 theme:
   name: material

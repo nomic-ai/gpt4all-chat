@@ -33,8 +33,9 @@ pip3 install -e .
 
 from gpt4all import GPT4All
 
-model = GPT4All(model_path="path/to/model")
-model.generate("hello there")
+gptj = GPT4All("ggml-gpt4all-j-v1.3-groovy")
+messages = [{"role": "user", "content": "Name 3 colors"}]
+gptj.chat_completion(messages)
 
 ```
 
