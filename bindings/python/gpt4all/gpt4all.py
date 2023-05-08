@@ -4,12 +4,16 @@ Python only API for running all GPT4All models.
 import os
 from typing import Dict, List
 
+import requests
+
 from . import pyllmodel
 
+# TODO: move to config
+DEFAULT_MODEL_DIRECTORY = "~/.cache/gpt4all/"
 
 class GPT4All():
 
-    def __init__(self, model_path: str = None, model_type: str = None):
+    def __init__(self, model_name: str, model_path: str = None, model_type: str = None, allow_download=True):
         self.model = None
 
         # Model type provided for when model is custom
@@ -20,7 +24,87 @@ class GPT4All():
             model_filename = os.path.basename(model_path)
             self.model = GPT4All.get_model_from_filename(model_filename)
 
-        self.model.load_model(model_path)
+        # Retrieve model and download if allowed
+        model_dest = self.retrieve_model(model_name, model_path=model_path, allow_download=allow_download)
+        self.model.load_model(model_dest)
+
+    @staticmethod
+    def list_models():
+        response = requests.get("https://gpt4all.io/models/models.json")
+        model_json = json.loads(response.content)
+        return model_json
+
+    @staticmethod
+    def retrieve_model(model_name: str, model_path: str = None, allow_download=True):
+        
+        model_filename = model_name
+        if ".bin" not in model_filename:
+            model_filename += ".bin"
+
+        # Validate download directory
+        if model_path == None:
+            model_path = DEFAULT_MODEL_DIRECTORY
+            if os.path.exists(DEFAULT_MODEL_DIRECTORY):
+                continue
+            else:
+                try:
+                    os.mkdirs(DEFAULT_MODEL_DIRECTORY)
+                except:
+                    raise ValueError("Failed to create model download directory at ~/.cache/gpt4all/. \
+                    Please specify download_dir.")
+
+        download_path = None
+
+        if os.path.exists(model_path):
+            model_dest = os.path.join(model_path, model_filename)
+            if os.path.exists(model_dest):
+                print("Found model file.")
+                return model_dest
+
+            # If model file does not exist, download
+            elif allow_download: 
+                # Make sure valid model filename before attempting download
+                model_match = False
+                for item in self.list_models():
+                    if model_filename == item["filename"]:
+                        model_match = True
+                        break
+                if not model_match:
+                    raise ValueError(f"Model filename not in model list: {model_filename}")
+                return self.download_model(model_path, model_filename)
+            else:
+                raise ValueError("Failed to retrieve model")
+        else:
+            raise ValueError("Invalid model directory")
+        
+    @staticmethod
+    def download_model(model_path, model_filename):
+        def get_download_url(model_filename):
+            return f"https://gpt4all.io/models/{model_filename}"
+        # Download model
+
+        download_path = os.path.join(model_path, model_filename)
+        download_url = get_download_url(model_filename)
+
+        response = requests.get(download_url, stream=True)
+        total_size_in_bytes = int(response.headers.get("content-length", 0))
+        block_size = 1048576  # 1 MB
+        progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+        with open(download_path, "wb") as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+        progress_bar.close()
+
+        # Validate download was successful
+        if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+            raise RuntimeError(
+                "An error occurred during download. Downloaded file may not work."
+            )
+
+        print("Model downloaded at: " + download_path)
+        return download_path
+        
 
     def generate(self, prompt: str, **generate_kwargs):
         """
@@ -67,7 +151,9 @@ class GPT4All():
         
         """
        
-        full_prompt = self._build_prompt(messages)
+        full_prompt = self._build_prompt(messages, 
+                                        default_prompt_header=default_prompt_header, 
+                                        default_prompt_footer=default_prompt_footer)
 
         if verbose:
             print(full_prompt)
@@ -78,6 +164,7 @@ class GPT4All():
             print(response)
 
         response_dict = {
+            "model": self.model.model_name,
             "usage": {"prompt_tokens": len(full_prompt), 
                       "completion_tokens": len(response), 
                       "total_tokens" : len(full_prompt) + len(response)},
