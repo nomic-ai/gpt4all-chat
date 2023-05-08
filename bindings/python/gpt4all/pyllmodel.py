@@ -30,7 +30,6 @@ def load_llmodel_library():
     llmodel_dir = str(pkg_resources.resource_filename('gpt4all', LLMODEL_PATH + llmodel_file))
 
     llama_lib = ctypes.CDLL(llama_dir, mode=ctypes.RTLD_GLOBAL)
-
     llmodel_lib = ctypes.CDLL(llmodel_dir)
 
     return llmodel_lib, llama_lib

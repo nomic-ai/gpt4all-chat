@@ -13,8 +13,6 @@ LIB_NAME = "llmodel"
 
 DEST_CLIB_DIRECTORY = f"{package_name}/{LIB_NAME}_DO_NOT_MODIFY"
 DEST_CLIB_BUILD_DIRECTORY = os.path.join(DEST_CLIB_DIRECTORY, "build")
-print(DEST_CLIB_DIRECTORY)
-print(DEST_CLIB_BUILD_DIRECTORY)
 
 system = platform.system()
 
@@ -29,9 +27,7 @@ def get_c_shared_lib_extension():
     else:
         raise Exception("Operating System not supported")
     
-
 lib_ext = get_c_shared_lib_extension()
-
 
 def copy_prebuilt_C_lib(src_dir, dest_dir, dest_build_dir):
     files_copied = 0
@@ -77,7 +73,7 @@ setup(
     ],
     python_requires='>=3.8',
     packages=find_packages(),
-    install_requires=["pytest==7.3.1"],
+    install_requires=["pytest==7.3.1", "requests"],
     package_data={'llmodel': [f"{DEST_CLIB_DIRECTORY}/*", f"*.dll"]},
     include_package_data=True
 )

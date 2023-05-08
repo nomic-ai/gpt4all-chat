@@ -81,8 +81,8 @@ class GPT4All():
     def download_model(model_path, model_filename):
         def get_download_url(model_filename):
             return f"https://gpt4all.io/models/{model_filename}"
+    
         # Download model
-
         download_path = os.path.join(model_path, model_filename)
         download_url = get_download_url(model_filename)
 
@@ -104,7 +104,6 @@ class GPT4All():
 
         print("Model downloaded at: " + download_path)
         return download_path
-        
 
     def generate(self, prompt: str, **generate_kwargs):
         """
