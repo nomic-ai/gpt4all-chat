@@ -29,7 +29,7 @@ jobs:
           name: Build wheel
           command: |
             cd bindings/python/
-            python setup.py bdist_wheel --plat-name=linux_x86_64
+            python setup.py bdist_wheel --plat-name=manylinux1_x86_64
       - persist_to_workspace:
           root: bindings/python/dist
           paths:
