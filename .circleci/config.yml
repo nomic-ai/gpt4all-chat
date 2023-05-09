@@ -109,3 +109,10 @@ workflows:
             - build-linux
             - build-macos
             - build-windows
+    triggers:
+      - schedule:
+          cron: "never"
+          filters:
+            branches:
+              ignore:
+                - /.*/
