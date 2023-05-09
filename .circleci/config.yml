@@ -29,8 +29,8 @@ jobs:
       - run:
           name: Build wheel
           command: |
-          cd ../../bindings/python/
-          python setup.py bdist_wheel
+            cd ../../bindings/python/
+            python setup.py bdist_wheel
 
       - persist_to_workspace:
           root: .
