@@ -25,16 +25,17 @@ jobs:
             cd build
             cmake ..
             cmake --build . --parallel
-
       - run:
           name: Build wheel
           command: |
             cd bindings/python/
             python setup.py bdist_wheel --plat-name=linux_x86_64
-      - persist_to_workspace:
-          root: bindings/python/dist/
-          paths:
-            - "*.whl"
+      - store_artifacts:
+          path: bindings/python/dist
+      # - persist_to_workspace:
+      #     root: bindings/python/dist/
+      #     paths:
+      #       - "*.whl"
 
   build-macos:
     macos:
@@ -61,10 +62,12 @@ jobs:
           command: |
             cd bindings/python
             python setup.py bdist_wheel --plat-name=macosx_10_9_universal2
-      - persist_to_workspace:
-          root: bindings/python/dist/
-          paths:
-            - "*.whl"
+      - store_artifacts:
+          path: bindings/python/dist
+      # - persist_to_workspace:
+      #     root: bindings/python/dist/
+      #     paths:
+      #       - "*.whl"
 
   build-windows:
     executor:
@@ -82,10 +85,10 @@ jobs:
           command: |
             cd bindings/python
             python setup.py bdist_wheel --plat-name=win_amd64
-      - persist_to_workspace:
-          root: bindings/python/dist/
-          paths:
-            - "*.whl"
+      # - persist_to_workspace:
+      #     root: bindings/python/dist/
+      #     paths:
+      #       - "*.whl"
 
 workflows:
   version: 2
