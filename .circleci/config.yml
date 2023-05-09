@@ -87,7 +87,10 @@ jobs:
             - "*.whl"
 
   store-and-upload-wheels:
+    docker:
+      - image: circleci/python:3.8
     steps:
+      - setup_remote_docker
       - attach_workspace:
           at: /tmp/workspace
       - store_artifacts:
