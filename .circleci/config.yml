@@ -1,23 +1,83 @@
 version: 2.1
+orbs:
+  win: circleci/windows@2.2.0
+  python: circleci/python@1.2
 
-# Define the jobs we want to run for this project
 jobs:
-  build:
+  build-linux:
     docker:
-      - image: cimg/base:2023.03
+      - image: circleci/python:3.8
     steps:
       - checkout
-      - run: echo "this is the build job"
-  test:
-    docker:
-      - image: cimg/base:2023.03
-    steps:
-      - checkout
-      - run: echo "this is the test job"
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y cmake build-essential
+            pip install setuptools wheel cmake twine
+      - run:
+          name: Build C library
+          command: |
+            git submodule init
+            git submodule update
+            cd llmodel
+            mkdir build
+            cd build
+            cmake ..
+            cmake --build . --parallel
 
-# Orchestrate our job run sequence
+      - run:
+          name: Build wheel
+          command: |
+          cd ../../bindings/python/
+          python setup.py bdist_wheel
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bindings/python/dist
+
+  # build-macos:
+  #   macos:
+  #     xcode: "14.2.0"
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           brew install cmake
+  #           pip install setuptools wheel cmake twine
+  #     - run:
+  #         name: Build wheel
+  #         command: python setup.py bdist_wheel
+  #     - persist_to_workspace:
+  #         root: .
+  #         paths:
+  #           - dist
+
+  # build-windows:
+  #   executor:
+  #     name: win/default
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+  #     - run:
+  #         name: Install Python dependencies
+  #         command: pip install setuptools wheel cmake twine
+  #     - run:
+  #         name: Build wheel
+  #         command: python setup.py bdist_wheel
+  #     - persist_to_workspace:
+  #         root: .
+  #         paths:
+  #           - dist
+
 workflows:
-  build_and_test:
+  version: 2
+  build-deploy:
     jobs:
-      - build
-      - test
+      - build-linux
+      #- build-macos
+      #- build-windows
