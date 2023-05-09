@@ -94,6 +94,16 @@ jobs:
       - setup_remote_docker
       - attach_workspace:
           at: /tmp/workspace
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y cmake build-essential
+            pip install setuptools wheel twine
+      - run:
+          name: Upload Python package
+          command: |
+            twine upload /tmp/workspace/*.whl
       - store_artifacts:
           path: /tmp/workspace
 
@@ -109,10 +119,7 @@ workflows:
             - build-linux
             - build-macos
             - build-windows
-    triggers:
-      - schedule:
-          cron: "never"
-          filters:
-            branches:
-              ignore:
-                - /.*/
+    filters:
+      branches:
+        ignore:
+          - /.*/
