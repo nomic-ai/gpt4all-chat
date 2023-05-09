@@ -103,7 +103,7 @@ jobs:
       - run:
           name: Upload Python package
           command: |
-            twine upload /tmp/workspace/*.whl
+            twine upload /tmp/workspace/*.whl --username __token__ --password $PYPI_CRED
       - store_artifacts:
           path: /tmp/workspace
 
