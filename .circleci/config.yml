@@ -76,7 +76,7 @@ jobs:
           command: choco install -y mingw --force --no-progress
       - run:
           name: Add MinGW64 to PATH
-          command: echo 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin' | Out-File -Append -FilePath $env:Path -Encoding ASCII
+          command: $env:Path += ";C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin"
       - run:
           name: Install dependencies
           command: choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
@@ -128,10 +128,10 @@ workflows:
   build-deploy:
     jobs:
       - build-linux
-      - build-macos
+      #- build-macos
       - build-windows
-      - store-and-upload-wheels:
-          requires:
-            - build-linux
-            - build-macos
-            - build-windows
+      #- store-and-upload-wheels:
+      #    requires:
+      #      - build-linux
+      #      - build-macos
+      #      - build-windows
