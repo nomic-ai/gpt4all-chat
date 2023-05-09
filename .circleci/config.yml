@@ -32,28 +32,37 @@ jobs:
             cd bindings/python/
             python setup.py bdist_wheel
 
-      - persist_to_workspace:
-          root: .
-          paths:
-            - bindings/python/dist
+      - store_artifacts:
+          path: bindings/python/dist
 
-  # build-macos:
-  #   macos:
-  #     xcode: "14.2.0"
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Install dependencies
-  #         command: |
-  #           brew install cmake
-  #           pip install setuptools wheel cmake twine
-  #     - run:
-  #         name: Build wheel
-  #         command: python setup.py bdist_wheel
-  #     - persist_to_workspace:
-  #         root: .
-  #         paths:
-  #           - dist
+  build-macos:
+    macos:
+      xcode: "14.2.0"
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            brew install cmake
+            pip install setuptools wheel cmake twine
+      - run:
+          name: Build C library
+          command: |
+            git submodule init
+            git submodule update
+            cd llmodel
+            mkdir build
+            cd build
+            cmake ..
+            cmake --build . --parallel
+      - run:
+          name: Build wheel
+          command: |
+            cd bindings/python
+            python setup.py bdist_wheel
+
+      - store_artifacts:
+          path: bindings/python/dist
 
   # build-windows:
   #   executor:
@@ -79,5 +88,5 @@ workflows:
   build-deploy:
     jobs:
       - build-linux
-      #- build-macos
+      - build-macos
       #- build-windows
