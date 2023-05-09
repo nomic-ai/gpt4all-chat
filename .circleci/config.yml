@@ -73,7 +73,7 @@ jobs:
       - checkout
       - run:
           name: Install dependencies
-          command: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+          command: choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
       - run:
           name: Install Python dependencies
           command: pip install setuptools wheel cmake twine
