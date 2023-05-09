@@ -73,7 +73,7 @@ jobs:
       - checkout
       - run:
           name: Install MinGW64
-          command: choco install mingw --force --no-progress
+          command: choco install -y mingw --force --no-progress
       - run:
           name: Add MinGW64 to PATH
           command: echo 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin' | Out-File -Append -FilePath $env:Path -Encoding ASCII
