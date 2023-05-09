@@ -119,7 +119,3 @@ workflows:
             - build-linux
             - build-macos
             - build-windows
-    filters:
-      branches:
-        ignore:
-          - /.*/
