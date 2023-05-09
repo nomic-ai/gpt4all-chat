@@ -72,6 +72,12 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install MinGW64
+          command: choco install mingw --force --no-progress
+      - run:
+          name: Add MinGW64 to PATH
+          command: echo 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin' | Out-File -Append -FilePath $env:Path -Encoding ASCII
+      - run:
           name: Install dependencies
           command: choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
       - run:
@@ -85,7 +91,7 @@ jobs:
             cd llmodel
             mkdir build
             cd build
-            cmake .. 
+            cmake -G "MinGW Makefiles" .. 
             cmake --build . --parallel
       - run:
           name: Build wheel
