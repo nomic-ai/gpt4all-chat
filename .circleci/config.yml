@@ -116,10 +116,10 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y cmake build-essential
             pip install setuptools wheel twine
-      - run:
-          name: Upload Python package
-          command: |
-            twine upload /tmp/workspace/*.whl --username __token__ --password $PYPI_CRED
+      # - run:
+      #     name: Upload Python package
+      #     command: |
+      #       twine upload /tmp/workspace/*.whl --username __token__ --password $PYPI_CRED
       - store_artifacts:
           path: /tmp/workspace
 
@@ -130,8 +130,8 @@ workflows:
       - build-linux
       #- build-macos
       - build-windows
-      #- store-and-upload-wheels:
-      #    requires:
-      #      - build-linux
+      - store-and-upload-wheels:
+          requires:
+            - build-linux
+            - build-windows
       #      - build-macos
-      #      - build-windows
