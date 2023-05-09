@@ -166,10 +166,10 @@ class GPT4All():
             verbose: If True (default), print full prompt and generated response.
 
         Returns:
-            Response dictionary with:
-                "model": name of model.
+            Response dictionary with:  
+                "model": name of model.  
                 "usage": a dictionary with number of full prompt tokens, number of 
-                    generated tokens in response, and total tokens.
+                    generated tokens in response, and total tokens.  
                 "choices": List of message dictionary where "content" is generated response and "role" is set
                 as "assistant". Right now, only one choice is returned by model.
             
