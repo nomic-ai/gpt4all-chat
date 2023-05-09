@@ -78,6 +78,16 @@ jobs:
           name: Install Python dependencies
           command: pip install setuptools wheel cmake
       - run:
+          name: Build C library
+          command: |
+            git submodule init
+            git submodule update
+            cd llmodel
+            mkdir build
+            cd build
+            cmake .. 
+            cmake --build . --parallel
+      - run:
           name: Build wheel
           command: |
             cd bindings/python
