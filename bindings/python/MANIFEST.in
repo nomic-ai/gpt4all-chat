@@ -1,1 +1,1 @@
-recursive-include gpt4all/llmodel_DO_NOT_MODIFY/ *
+recursive-include gpt4all/llmodel_DO_NOT_MODIFY *
