@@ -29,6 +29,10 @@ def load_llmodel_library():
     llama_dir = str(pkg_resources.resource_filename('gpt4all', os.path.join(LLMODEL_PATH, llama_file)))
     llmodel_dir = str(pkg_resources.resource_filename('gpt4all', os.path.join(LLMODEL_PATH, llmodel_file)))
 
+    # For windows
+    llama_dir = llama_dir.replace("\\", "\\\\")
+    llmodel_dir = llmodel_dir.replace("\\", "\\\\")
+
     llama_lib = ctypes.CDLL(llama_dir, mode=ctypes.RTLD_GLOBAL)
     llmodel_lib = ctypes.CDLL(llmodel_dir)
 

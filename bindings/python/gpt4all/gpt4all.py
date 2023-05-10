@@ -12,7 +12,7 @@ from tqdm import tqdm
 from . import pyllmodel
 
 # TODO: move to config
-DEFAULT_MODEL_DIRECTORY = os.path.join(str(Path.home()), ".cache", "gpt4all")
+DEFAULT_MODEL_DIRECTORY = os.path.join(str(Path.home()), ".cache", "gpt4all").replace("\\", "\\\\")
 
 class GPT4All():
     """Python API for retrieving and interacting with GPT4All models
@@ -73,7 +73,7 @@ class GPT4All():
         Returns:
             Model file destination.
         """
-        
+        model_path = model_path.replace("\\", "\\\\")
         model_filename = model_name
         if ".bin" not in model_filename:
             model_filename += ".bin"
@@ -89,7 +89,7 @@ class GPT4All():
                     Please specify download_dir.")
 
         if os.path.exists(model_path):
-            model_dest = os.path.join(model_path, model_filename)
+            model_dest = os.path.join(model_path, model_filename).replace("\\", "\\\\")
             if os.path.exists(model_dest):
                 print("Found model file.")
                 return model_dest
@@ -116,7 +116,7 @@ class GPT4All():
             return f"https://gpt4all.io/models/{model_filename}"
     
         # Download model
-        download_path = os.path.join(model_path, model_filename)
+        download_path = os.path.join(model_path, model_filename).replace("\\", "\\\\")
         download_url = get_download_url(model_filename)
 
         response = requests.get(download_url, stream=True)
