@@ -8,6 +8,6 @@ This repo will be archived and set to read-only.
 
 The main repo is here: https://github.com/nomic-ai/gpt4all
 
-The subdirectory with this repo is here: https://github.com/nomic-ai/gpt4all/gpt4all-chat
+The subdirectory with this repo is here: https://github.com/nomic-ai/gpt4all/tree/main/gpt4all-chat
 
 Thank you!
