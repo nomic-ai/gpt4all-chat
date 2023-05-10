@@ -167,9 +167,9 @@ workflows:
   version: 2
   build-deploy:
     jobs:
-      - build-linux
+      #- build-linux
       #- build-macos
-      #- build-windows
+      - build-windows
       - store-and-upload-wheels:
           requires:
             - build-windows
