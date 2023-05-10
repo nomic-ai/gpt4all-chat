@@ -7,7 +7,7 @@ import re
 import sys
 
 # TODO: provide a config file to make this more robust
-LLMODEL_PATH = "llmodel_DO_NOT_MODIFY/build/"
+LLMODEL_PATH = os.path.join("llmodel_DO_NOT_MODIFY", "build")
 
 def load_llmodel_library():
     system = platform.system()
@@ -21,13 +21,13 @@ def load_llmodel_library():
             return "dll"
         else:
             raise Exception("Operating System not supported")
-        
+
     c_lib_ext = get_c_shared_lib_extension()
-    
+
     llmodel_file = "libllmodel" + '.' + c_lib_ext
     llama_file = "libllama" + '.' + c_lib_ext
-    llama_dir = str(pkg_resources.resource_filename('gpt4all', LLMODEL_PATH + llama_file))
-    llmodel_dir = str(pkg_resources.resource_filename('gpt4all', LLMODEL_PATH + llmodel_file))
+    llama_dir = str(pkg_resources.resource_filename('gpt4all', os.path.join(LLMODEL_PATH, llama_file)))
+    llmodel_dir = str(pkg_resources.resource_filename('gpt4all', os.path.join(LLMODEL_PATH, llmodel_file)))
 
     llama_lib = ctypes.CDLL(llama_dir, mode=ctypes.RTLD_GLOBAL)
     llmodel_lib = ctypes.CDLL(llmodel_dir)

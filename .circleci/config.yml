@@ -66,6 +66,46 @@ jobs:
           paths:
             - "*.whl"
 
+  # build-linux:
+  #   docker:
+  #     - image: circleci/python:3.8
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           sudo apt-get update
+  #           sudo apt-get install -y cmake build-essential
+  #           pip install setuptools wheel cmake
+  #     - run:
+  #         name: Install MingW
+  #         command: sudo apt-get install -y mingw-w64
+  #     - run:
+  #         name: Build C library
+  #         command: |
+  #           git submodule init
+  #           git submodule update
+  #           cd llmodel
+  #           mkdir build
+  #           cd build
+  #           cmake \
+  #             -DCMAKE_SYSTEM_NAME=Windows \
+  #             -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+  #             -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+  #             -DCMAKE_EXECUTABLE_SUFFIX=".exe" \
+  #             -DCMAKE_SHARED_LIBRARY_SUFFIX=".dll" \
+  #             ..
+  #           cmake --build . --parallel
+  #     - run:
+  #         name: Build wheel
+  #         command: |
+  #           cd bindings/python/
+  #           python setup.py bdist_wheel --plat-name=manylinux1_x86_64
+  #     - persist_to_workspace:
+  #         root: bindings/python/dist
+  #         paths:
+  #           - "*.whl"
+
   build-windows:
     executor:
       name: win/default
@@ -129,9 +169,9 @@ workflows:
     jobs:
       - build-linux
       #- build-macos
-      - build-windows
+      #- build-windows
       - store-and-upload-wheels:
           requires:
-            - build-linux
             - build-windows
+      #      - build-linux
       #      - build-macos

@@ -6,12 +6,12 @@ import shutil
 package_name = "gpt4all"
 
 # Define the location of your prebuilt C library files
-SRC_CLIB_DIRECtORY = "../../llmodel/"
-SRC_CLIB_BUILD_DIRECTORY = "../../llmodel/build"
+SRC_CLIB_DIRECtORY = os.path.join("..", "..", "llmodel")
+SRC_CLIB_BUILD_DIRECTORY = os.path.join("..", "..", "llmodel", "build") 
 
 LIB_NAME = "llmodel"
 
-DEST_CLIB_DIRECTORY = f"{package_name}/{LIB_NAME}_DO_NOT_MODIFY"
+DEST_CLIB_DIRECTORY = os.path.join(package_name, f"{LIB_NAME}_DO_NOT_MODIFY")
 DEST_CLIB_BUILD_DIRECTORY = os.path.join(DEST_CLIB_DIRECTORY, "build")
 
 system = platform.system()
@@ -84,6 +84,6 @@ setup(
             'mkdocs-jupyter'
         ]
     },
-    package_data={'llmodel': [f"{DEST_CLIB_DIRECTORY}/*", f"*.dll"]},
+    package_data={'llmodel': [os.path.join(DEST_CLIB_DIRECTORY, "*")]},
     include_package_data=True
 )
