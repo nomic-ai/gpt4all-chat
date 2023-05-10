@@ -112,15 +112,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install Python 3.9.7
-          command: |
-            $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe" -OutFile "python-3.9.7-amd64.exe"
-            Start-Process -FilePath "python-3.9.7-amd64.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait -PassThru
-      - run:
-          name: Check Python version
-          command: python --version
-      - run:
           name: Install MinGW64
           command: choco install -y mingw --force --no-progress
       - run:
